@@ -7,6 +7,8 @@ use think\Db;
 use think\Loader;
 use app\common\model\HyFile;
 use think\Validate;
+use think\Session;
+use think\Config;
 
 class HyList extends HyBase
 {   
@@ -35,12 +37,17 @@ class HyList extends HyBase
         'whereNotExists'    =>  [],
         'whereExp'  =>  [],
     ];
+
+    //验证器配置项
+    protected $validateOptions = [];
     //标题和副标题
     protected $infoOptions = [
         'title' => '',
         'subtitle'  =>  '',
         'pagetitle' => ''
     ];
+
+    protected $resJsonKeys = [];
 
 
     // 页面配置
@@ -49,6 +56,8 @@ class HyList extends HyBase
     //  字段配置
     protected $fieldsOptions = [];
 
+    protected $fieldOptionsMap = [];
+
     //设置一对一关联
     protected $relativeTable = [];
 
@@ -56,6 +65,7 @@ class HyList extends HyBase
         parent::initialize();
 
         $this->pk = $this->initPk();
+        $this->resJsonKeys = Config::get('common.resJsonKeys');
         // var_dump($this);
         $this->pageOptions = [
             // 表格类型
@@ -126,6 +136,7 @@ class HyList extends HyBase
         $this->setSqlOptions($this->initSqlOptions());
         $this->setPageOptions($this->initPageOptions());
         $this->setFieldsOptions($this->initFieldsOptions());
+        $this->setValidateOptions($this->initValidateOptions());
         $this->setFieldsAliasMap();
 
         // if($this->pageOptions['tablesWrite']===true)
@@ -161,6 +172,12 @@ class HyList extends HyBase
         }
     }
 
+    public function setValidateOptions($option){
+        if(is_array($option)){  
+            $this->validateOptions = array_merge($this->validateOptions,$option);
+        }
+    }
+
     /**
      * [setInfoOptions 初始化fieldsOptions]
      * @param [type] $option [description]
@@ -169,6 +186,11 @@ class HyList extends HyBase
         if(is_array($option)){
             $this->fieldsOptions = array_merge($this->fieldsOptions,$option);
         }
+
+        foreach ($this->fieldsOptions as $k => $v) {
+            $this->fieldOptionsMap[$v['name']] = $v;
+        }
+        
     }
 
     /**
@@ -243,21 +265,51 @@ class HyList extends HyBase
     }
 
     /**
-     * [callbackHandler 回调控制]
+     * [callbackHandler 回调控制 默认第一个参数为回调函数名，第二个参数为变量初始值，剩下的都是其他参数]
      * @param  [type] $callback [回调函数的名字]
      * @param  [type] $value    [回调函数的参数]
      * @param  [type] $data     [前台提交的数组]
      * @return [type]           [description]
      */
-    protected function callbackHandler($callback,$value,$data){
-        // dump(func_get_args());
-        $cb = $callback;
+    protected function callbackHandler(){
+        $args = func_get_args();
         
-        if(is_string($cb)){
-            if($cb = method_exists($this,'callback_'.$cb)?array(&$this, 'callback_'.$cb) : false){
-                return call_user_func_array($cb, array($value,$data));
+        $cb = array_shift($args);
+        $value = array_shift($args);
+        $data = array_shift($args);
+      
+        if(is_array($cb)){
+
+            $res = $value;
+
+            foreach ($cb as $k => $v) {
+
+                if(is_string($v)){
+
+
+                    if($cb_item = method_exists($this,'callback_'.$v)?[$this, 'callback_'.$v] : false){
+                        $res = call_user_func_array($cb_item,[$value,$data,$args]);
+                    }
+
+                    // var_dump($res);
+
+                }else if(is_array($v)){
+                    $cb_item = array_shift($v);
+
+                    if($cb_item = method_exists($this,'callback_'.$cb_item)?[&$this, 'callback_'.$cb_item] : false){
+                        $res = call_user_func_array($cb_item,[$res,$data]);
+                    }
+
+                }
             }
+
+            // var_dump($res);
+            return $res;
+
         }
+
+        return $value;
+        
     }
 
 
@@ -267,24 +319,68 @@ class HyList extends HyBase
      * @return [NULL]         
      */
     protected function searchMap($search){
+
         $searchArr = [];
 
         foreach($search as $k => $v){
 
-            if(!isset($this->fieldsOptions[$k]['list']['search'])) continue;
-            $searchOption = $this->fieldsOptions[$k]['list']['search'];
-            $type = $searchOption['type']?:'like';
-            $table = DTP.$this->fieldsOptions[$k]['table']?:'';
-            
-            /*如果使用了callbackHander就默认使用字符串查询*/
-            if($callback = isset($searchOption['callback'])?$searchOption['callback']:false){
-                $cb = $callback[0];
-                $string = $this->callbackHandler($cb,$v);
-                $this->where($string);
-                contnue;
+            $isConfig = true;
+            $fieldOption = null;
+
+            // var_dump($k);
+            foreach ($this->fieldsOptions as $k1 => $v1) {
+                
+                // var_dump($v1['name']);
+
+                if($k == $v1['name']){
+                    if(
+                        !isset($v1['search']) && 
+                        !isset($v1['search']['open']) && 
+                        !$v1['search']['open']
+                    ){
+                        $isConfig = false;
+                    }else{
+                        $fieldOption = $v1;
+                    }
+
+                    break;
+
+                }
             }
 
+
+            if(!$isConfig) continue;
+           
+            if($v == null || (is_array($v) && count($v) == 0) || (is_string($v) && $v == "")) continue;
+
+            
+            
+            $searchOptions = isset($fieldOption['search']['backend'])?$fieldOption['search']['backend']:null;
+
+            $type = $searchOptions?(isset($searchOptions['type'])?$searchOptions['type']:'like'):'equal';
+            // var_dump($type);
+            // var_dump($fieldOption);
+
+            $table = isset($fieldOption['table'])?DTP.$fieldOption['table']:null;
+            
             $k = isset($this->fieldsAliasMap[$k])?$this->fieldsAliasMap[$k]:$k;
+
+            $temp = $table?($table.'.'.$k):$k;
+
+            /*如果使用了callbackHander就默认使用字符串查询*/
+            if($callback = isset($searchOptions['callback'])?$searchOptions['callback']:false){
+
+                foreach ($callback as $k2 => $v2) {
+                    $cb = $callback[$k2];
+                    $string = $this->callbackHandler($cb,$v);
+                }
+
+                $searchArr[$temp] = $string;
+                
+                continue;
+            }
+
+
 
             switch($type){  
                 case 'daterange':
@@ -293,19 +389,19 @@ class HyList extends HyBase
                         $v[1] = strtotime($v[1]);
                     }
 
-                    $searchArr[$table.'.'.$k] = ['between',[$v[0],$v[1]]];
+                    $searchArr[$temp] = ['between',[$v[0],$v[1]]];
                     break;
                 case 'like':
-                    $searchArr[$table.'.'.$k] = ['like','%'.$v.'%']; break;
+                    $searchArr[$temp] = ['like','%'.$v.'%']; break;
                 case 'select':
                 case 'equal':
                 default:
-                    $searchArr[$table.'.'.$k] = ['eq',$v]; break;
+                    $searchArr[$temp] = ['eq',$v]; break;
 
             }
         }
         // dump($stringSearch);
-        $this->where($searchArr);   
+        return $searchArr;   
     }
 
 
@@ -316,6 +412,7 @@ class HyList extends HyBase
      */
     
     protected function getDtData($id = null){
+
         /*$result = Db::table('hy_user')
                 ->where(
                     array(
@@ -350,9 +447,11 @@ class HyList extends HyBase
                     ->fetchSql(true)
                     ->count('id');
         dump($result);*/
-        // dump(strtotime(date('Y-m-d', time())));
+     
         $get = Request::instance()->get();
 
+        $pageKeys = Config::get('common.pageKeys');
+        
         //获取alias
         if($alias = $this->sqlOptions['alias']?:'') $this->alias($alias);
 
@@ -382,8 +481,11 @@ class HyList extends HyBase
         $limit = $this->pageOptions['limit']?:null;
         
         //判断分页
-        $pageSize = isset($get['pageSize'])?$get['pageSize']:$limit;
-        $page = isset($get['page'])?$get['page']:1;
+        $pageSize = isset($get[$pageKeys['pageSize']])?$get[$pageKeys['pageSize']]:$limit;
+        $page = isset($get[$pageKeys['page']])?$get[$pageKeys['page']]:1;
+
+        unset($get[$pageKeys['pageSize']]);
+        unset($get[$pageKeys['page']]);
 
         // dump($pageSize);
         if($page&&$pageSize){
@@ -394,8 +496,8 @@ class HyList extends HyBase
         $field .= ','.$alias.'.'.$this->getPk();
 
         $this->field($field);
-        //获取where
         
+        //获取where
         if($where = $this->sqlOptions['where']?:null&&is_array($where)){
             //扩展搜索框时要在这里加查询条件
             
@@ -404,21 +506,20 @@ class HyList extends HyBase
             //如果只是查询一条信息
             if(!is_null($id))
             {
-                $where[$alias.".".$this->getPk()] = $id;
+                $where[(isset($alias)?$alias.".":"").$this->getPk()] = $id;
                 $limit = 1;  
             }
             else
             {
+                $searchArr = [];
                 //判断是否为搜素功能
-                if(method_exists($this,'searchMap')){
-                    foreach ($get as $k => $v) {
-                        if($k!='q'&&$k!='page'&&$k!='pageSize'){
-                            $search[$k] = $v;
-                        }
-                    }
-                    if(!empty($search))
-                        $this->searchMap($search);
+                if(method_exists($this,'searchMap') && count($get)!=0){
+                    $searchArr = $this->searchMap($get);
                 } 
+                
+                // var_dump($get);
+                $where = array_merge($where, $searchArr);
+
             }
             
             
@@ -434,28 +535,59 @@ class HyList extends HyBase
         // dump($join);
         // dump($where);
 
+
         $obj = $this
                 ->order((is_null($alias)?'':$alias).'.'.$this->pageOptions['order'])
                 ->limit($limit)
                 ->select();
 
          // dump($obj);
+        $dataKey = $this->resJsonKeys['data'];
+        $totalKey = $this->resJsonKeys['total'];
+        $infoKey = $this->resJsonKeys['info'];
+        $successKey = $this->resJsonKeys['success'];
+        $codeKey = $this->resJsonKeys['code'];
+        $statusKey = $this->resJsonKeys['status'];
+
+
+        if(!Session::get('form_token')){
+            Session::set('form_token',sha1(Config::get("crypto.CRYPT_KEY_ACT")));
+        }
 
         if(empty($obj)){
             return array(
-                'data'=>null,
-                'total'=>0,
-                'info' => '没有符合要求的信息！',
-                'code'  => 404,
-                'status'=>false
+                $dataKey => null,
+                $totalKey => 0,
+                $infoKey => '没有符合要求的信息！',
+                $successKey=>false,
+                $codeKey  => 500,
+                $statusKey=>false,
+                // 'token'=>Session::get('form_token'),
+                // 'config'=>$this->fieldsOptions
             );
+        }
+
+        if(!is_null($id)){
+            $detailConfig = $this->detail($id);
+
+            return [
+                $dataKey=>$obj[0],
+                $totalKey=>1,
+                'config'=>$detailConfig,
+                $infoKey=> '获取数据成功',
+                $successKey=>true,
+                $statusKey=>true,
+                $codeKey => 200
+            ];
+
         }
 
         $data = [];
         foreach ($obj as $k => $v) {
             $data[$k] = $v->toArray();
+            $data[$k]['key'] = $data[$k][$this->getPk()];
             // dump($v[$this->getPk()]);
-            $data[$k]['_pk'] = act_encrypt($v[$this->getPk()]);
+            $data[$k][$this->getPk()] = act_encrypt($v[$this->getPk()]);
 
         }
 
@@ -464,16 +596,21 @@ class HyList extends HyBase
         if(isset($whereOr)) $this->whereOr($whereOr);
         if(isset($join)) $this->join($join);
 
-        $count = $this->count((isset($alias)?$alias:'').'.'.$this->getPk())?:0;
+        $count = $this->count((isset($alias)?$alias.'.':'').$this->getPk())?:0;
 
-        // dump($count);
-        $json = array(
-            'data'=>$data,
-            'total'=>$count,
-            'info' => '获取数据成功',
-            'status'=>true,
-            'code' => 200
-        );
+
+        // dump($where);
+
+        $json = [
+            $dataKey=>$data,
+            'config'=>$this->fieldsOptions,
+            'token'=>Session::get('form_token'),
+            $totalKey=>$count,
+            $infoKey=> '获取数据成功',
+            $successKey=>true,
+            $statusKey=>true,
+            $codeKey => 200
+        ];
 
         return $json;
     }
@@ -499,9 +636,30 @@ class HyList extends HyBase
      * @return [type]        [description]
      */
     protected function ajax_insert(&$json,$req){
-        $res = $this->write('add',$req);
-        $json['status'] = $res;
-        $json['info'] = $res ?'数据新增成功！': "新增数据失败";
+
+        $token = Session::get('form_token');
+
+
+        $infoKey = $this->resJsonKeys['info'];
+        $successKey = $this->resJsonKeys['success'];
+        $codeKey = $this->resJsonKeys['code'];
+        $statusKey = $this->resJsonKeys['status'];
+
+        if($token == $req['token']){
+            unset($req['token']);
+            unset($req['_method']);
+
+            $json = $this->write('add',$req);
+            $json[$successKey] = $json[$statusKey];  
+            return;
+            
+        }else{
+            $json[$statusKey] = false;
+            $json[$successKey] = $json[$statusKey];
+            $json[$infoKey] = '非法操作！';
+            return;
+        } 
+       
     }
 
     /**
@@ -509,21 +667,34 @@ class HyList extends HyBase
      * @param  [type] &$json [description]
      * @return [type]        [description]
      */
-    protected function ajax_update(&$json,$req,$pk){
-        // $pk = token_validator(Request::instance()->post('_token'));
+    protected function ajax_update(&$json,$req){
+        $_pk = isset($req['_pk'])?$req['_pk']:null;
+        $pk = act_decrypt($_pk);
         
-        if(false === $pk){
-            $json['info'] = '请勿非法操作，拉黑后果自负！';
-            $json['status'] = false;
-            $json['code'] = 500;
-            return;
+
+        $infoKey = $this->resJsonKeys['info'];
+        $successKey = $this->resJsonKeys['success'];
+        $codeKey = $this->resJsonKeys['code'];
+        $statusKey = $this->resJsonKeys['status'];
+
+        // var_dump($pk);
+        if($pk == null || $req['token'] != Session::get('form_token')){
+            $json[$infoKey] = '请勿非法操作，拉黑后果自负！';
+            $json[$statusKey] = false;
+            $json[$codeKey] = 500;
+            
+        }else{
+            unset($req['_method']);
+            unset($req['id']);
+            unset($req['_pk']);
+            unset($req['token']);
+
+            // dump($req);
+            $json = $this->write('edit',$req,$pk);
         }
-        // dump($req);
-        $res = $this->write('edit',$req,$pk);
-       
-        $json['status'] = $res;
-        $json['info'] = $res ?'数据修改成功！':'修改数据失败';
-        $json['code'] = $res ?200:500;
+
+        
+        $json[$successKey] = $json[$statusKey];  
 
         return;
     }
@@ -534,44 +705,44 @@ class HyList extends HyBase
      * @param  [type] &$json [description]
      * @return [type]        [description]
      */
-    protected function ajax_edit(&$json,$id){
-        // $data = Request::instance()->post();
-        //这个段代码做示例要用
-        $tokenValue = act_encrypt($id);
+    // protected function ajax_edit(&$json,$id){
+    //     // $data = Request::instance()->post();
+    //     //这个段代码做示例要用
+    //     $tokenValue = act_encrypt($id);
         
-        // $data['pk'] = act_encrypt($data['pk']);
+    //     // $data['pk'] = act_encrypt($data['pk']);
 
-        $pk = $id;
+    //     $pk = $id;
 
             
-        $error = '无权访问要请求的数据！';
-        $field = $this->getPk();
-        if(!$field || !$pk){
-            $json['info'] = $error;
-            $json['status'] = false;
-            return; 
-        } 
-        // 数据访问检查
-        $value=$this->where(array($field=>array('eq', $pk)))->find();
-        // dump($value);
-        if(!$value){
-            $json['info'] = '数据不存在！';;
-            $json['status'] = false;
-            $json['code'] = 404;
-            return;
-        } 
+    //     $error = '无权访问要请求的数据！';
+    //     $field = $this->getPk();
+    //     if(!$field || !$pk){
+    //         $json['info'] = $error;
+    //         $json['status'] = false;
+    //         return; 
+    //     } 
+    //     // 数据访问检查
+    //     $value=$this->where(array($field=>array('eq', $pk)))->find();
+    //     // dump($value);
+    //     if(!$value){
+    //         $json['info'] = '数据不存在！';;
+    //         $json['status'] = false;
+    //         $json['code'] = 404;
+    //         return;
+    //     } 
 
-        $json['info'] = '获取数据成功！';
-        $json['status'] = true;
-        $json['val'] = $value;
-        $json['token'] = tokenBuilder($tokenValue);
-        $json['total'] = 1;
+    //     $json['info'] = '获取数据成功！';
+    //     $json['status'] = true;
+    //     $json['val'] = $value;
+    //     $json['token'] = tokenBuilder($tokenValue);
+    //     $json['total'] = 1;
 
-        // 主键检查
-        /*if(false===$this->checkPk($pk, 'edit')) return $this->setError($error);
-        $log=array('msg'=>'数据描述：'.implode('|', $value), 'style'=>'text-info');
-        Hook::listen('hy_log', $log);*/
-    }
+    //     // 主键检查
+    //     /*if(false===$this->checkPk($pk, 'edit')) return $this->setError($error);
+    //     $log=array('msg'=>'数据描述：'.implode('|', $value), 'style'=>'text-info');
+    //     Hook::listen('hy_log', $log);*/
+    // }
 
 
     /**
@@ -579,30 +750,52 @@ class HyList extends HyBase
      * @param  [type] &$json [description]
      * @return [type]        [description]
      */
-    protected function ajax_delete(&$json,$id){
-        // $arr = Request::instance()->post();
-        //之后将会通过post获取一个经过加密的id
-        /*if(!is_array($arr=explode(',', (I('pk'))))){
-            $json['info']='数据非法！';
-            return false;
-        }*/
-        if(!is_array($id) && !is_numeric($id)){
-            $json['info'] = 'id格式错误！';
-            $json['status'] = false; 
-            $json['code']   = 500;
+    protected function ajax_delete(&$json,$req){
+
+        $token = $req['token'];
+
+        $infoKey = $this->resJsonKeys['info'];
+        $successKey = $this->resJsonKeys['success'];
+        $codeKey = $this->resJsonKeys['code'];
+        $statusKey = $this->resJsonKeys['status'];
+
+
+        if($token != Session::get('form_token')){
+            $json[$infoKey]='数据非法！';
+            $json[$codeKey]='500';
+            $json[$successKey]=false;
+
             return;
-        } 
-        if(is_array($id)){
-            foreach ($id as &$v){
-                $v=act_decrypt($v);
-            }  
         }
 
-        // if(is_numeric($id)){}
+        unset($req['token']);
+        unset($req['_method']);
 
-        $this->hy_delete($json,$id);
-        
-       
+        $deleteId = $req['deleteId'];
+
+        if(is_array($deleteId)){
+            foreach ($deleteId as &$v){
+                $v = intval($v);
+
+                if(!is_numeric($v)){
+                    $json[$infoKey] = 'id格式错误，请重新提交！';
+                    $json[$statusKey] = false; 
+                    $json[$codeKey]   = 500;
+                    return;
+                }
+            }  
+        }else{
+            $deleteId = intval($deleteId);
+            if(!is_numeric($deleteId)){
+                $json[$infoKey] = 'id格式错误，请重新提交！';
+                $json[$statusKey] = false; 
+                $json[$codeKey]   = 500;
+                return;
+            }
+        }
+
+        $json = $this->hy_delete($deleteId);    
+        $json[$successKey] = $json[$statusKey];   
     }
 
     /**
@@ -610,13 +803,45 @@ class HyList extends HyBase
      * @param  [type] $arr [description]
      * @return [type]      [description]
      */
-    protected function hy_delete(&$json,$id){
+    protected function hy_delete($id){
+
+        $infoKey = $this->resJsonKeys['info'];
+        $successKey = $this->resJsonKeys['success'];
+        $codeKey = $this->resJsonKeys['code'];
+        $statusKey = $this->resJsonKeys['status'];
+
         // dump($id);
         $error = '无权访问要请求的数据！';
         $pk = $this->getPk();
-        if(!$pk) return false;
+        if(!$pk) 
+            return [
+                $statusKey=>false,
+                $infoKey=>'无法获取主键，请和系统管理员联系！'
+            ];
+        
         // 数据访问检查
-        // $value=$this->where(array($pk=>array('in', $id)))->find();
+        $modelName  =  get_class($this);
+        $model = new $modelName();
+
+        if(is_array($id)){
+            $value = $model->where(array($pk=>array('in', $id)))->select();
+            $v_len = count($value);
+
+            if($v_len < count($id)){
+                return [
+                    $statusKey=>false,
+                    $infoKey=>'某条数据已经不存在，请刷新重试！'
+                ];
+            }
+        }else{
+            $value = $model->where(array($pk=>array('eq', $id)))->find();
+            if(count($value) == 0){
+                return [
+                    $statusKey=>false,
+                    $infoKey=>'该条数据已经不存在，请刷新重试！'
+                ];
+            }
+        }
 
         /*
         // 主键检查
@@ -625,37 +850,68 @@ class HyList extends HyBase
         $log=array('msg'=>'数据描述：'.implode('|', $value), 'style'=>'text-info');
         Hook::listen('hy_log', $log);*/
         // dump($this);
-        $model  =  get_class($this);
-        $model = new $model();
+        
+        
         
         // dump($this->pageOptions['deleteType'])
         if('delete'==$this->pageOptions['deleteType']){
 
-            $res = $model::destroy($id);
-            // dump($res);
-            // $this->where(array($pk=>array('IN', $id)))->delete();
-            $json['info'] = '删除成功！';
-            $json['status'] = true; 
-            $json['code']   = 200;
-            return;
+            // $res = $model::destroy($id);
+
+            Db::startTrans();
+
+            try{
+
+                if(is_array($id)){
+
+                    foreach ($id as $k => $v) {
+                        Db::table($this->table)->delete($v);
+                        // 提交事务
+                        Db::commit(); 
+                    }
+                    
+                }else{
+                    // var_dump($id);
+                    Db::table($this->table)->delete($id);
+                    Db::commit(); 
+                }
+
+                return [
+                    $infoKey => '删除成功！',
+                    $statusKey => true,
+                    $codeKey => 200
+                ];
+                   
+            } catch (\Exception $e) {
+                // 回滚事务
+                Db::rollback();
+
+                return [
+                    $infoKey => '删除失败，请重新操作！',
+                    $statusKey => false,
+                    $codeKey => 500
+                ];
+            }    
         }
 
         $del=explode('|', $this->pageOptions['deleteType']);
 
         if(2 !== count($del)){
-            $json['info'] = 'deleteType配置错误！';
-            $json['status'] = false;
-            $json['code']   = 500;
-            return;
+            return [
+                $infoKey => 'deleteType配置错误！',
+                $statusKey => false,
+                $codeKey => 500
+            ];
         } 
 
         $model->where([$pk=>['IN', $id], $del[0]=>['lt', $del[1]]])
               ->update([$del[0]=>$del[1]]);
 
-        $json['info'] = '删除成功！';
-        $json['status'] = true;
-        $json['code']   = 200;
-        return; 
+        return [
+            $infoKey => '删除成功！',
+            $statusKey => true,
+            $codeKey => 200
+        ]; 
     }
 
     /**
@@ -681,17 +937,29 @@ class HyList extends HyBase
         //     'article_title'=>'love galore'
         // ];
 
-        $model->fieldsTypeDealing();
+        $model->fieldsTypeDealing($type,$data);
 
+        // var_dump($data);
         $valide = $model->fieldsValidate($data);
-        if($valide['status']===false) return $valide;
+        if($valide['status']===false){ 
+            // var_dump($valide);
+            return $valide;
+        }
 
         
         $model->initCallback($data);
+
+        /*自动填充*/
         $model->autoFill($type,$data);
 
+        var_dump($data);
         $dataList = [];
         $current = $model->table;
+
+        /*获取键值*/
+        $infoKey = $this->resJsonKeys['info'];
+        $codeKey = $this->resJsonKeys['code'];
+        $statusKey = $this->resJsonKeys['status'];
         
         if(isset($model->pageOptions['tablesWrite'])&&$model->pageOptions['tablesWrite'] === true){
 
@@ -780,15 +1048,38 @@ class HyList extends HyBase
             }
             
             if($type == 'add'){
-
+                // var_dump($dataList);
                 // $this_pk = $model->getPk();
                 $res = $model->data($dataList)->allowField(true)->save();
-                return !!$res;
+
+                if(!!$res){ 
+                    $status = true;
+                    $info = '数据新增成功！';
+                    $code = 200;
+                }
+                else{ 
+                    $status = false;    
+                    $info = '数据新增失败！';
+                    $code = 500;
+                };
+                
 
             }elseif($type == 'edit'){
                 $res = $model->isUpdate(true)->allowField(true)->save($dataList,[$this->getPk()=>$pk]);
-                return !!$res;
+
+                if(!!$res){ 
+                    $status = true;
+                    $info = '数据更新成功！';
+                    $code = 200;
+                }
+                else{ 
+                    $status = false;
+                    $info = '数据更新失败！';
+                    $code = 500;
+                };
             }
+
+            return [$statusKey=>$status,$infoKey=>$info,$codeKey=>$code];
         }   
     }
 
@@ -803,44 +1094,30 @@ class HyList extends HyBase
         $rules = $msgs = [];
         // dump($data);
         $data_key = array_keys($data);
-        
+
         foreach ($this->fieldsOptions as $k => $v) {
+            // var_dump($v['name']);
+            if(!in_array($v['name'],$data_key)||empty($v['form'])||empty($v['form']['validate'])) continue;
 
-            if(!in_array($k,$data_key)||empty($v['form'])||empty($v['form']['validate'])) continue;
-
-            if($v['form']['type']=='text')
+            //进行xss过滤
+            if($v['type']=='text')
                 $data[$k] = htmlspecialchars($data[$k],ENT_QUOTES);
-            elseif($v['form']['type']=='textarea')
-                $data[$k] = remove_xss($data[$k]);
-
-            $fieldRule = $v['form']['validate'];
-            if(is_string($fieldRule)){
-                 $rules[$k] = $fieldRule;
-            }
-            if(is_array($fieldRule)){
-                if(isset($fieldRule['rule'])){
-                    $rules[$k] = $fieldRule['rule'];
-                }else{
-                    $rules[$k] = $fieldRule;
-                }
-
-                if(isset($fieldRule['msg'])){
-                    foreach ($fieldRule['msg'] as $k1 => $v1) {
-                        $msgs[$k.'.'.$k1] = $v1;
-                    }       
-                }
-                
-            }
+            elseif($v['type']=='textarea')
+                $data[$v['name']] = remove_xss($data[$v['name']]);
         }
-        
-        $validate = new Validate($rules,$msgs);
-        $result = $validate->check($data);
 
-        $info = [];
-        $info['status'] = $result;
-        $info['info'] = ($result === false)?$validate->getError():'验证通过！';
+
+        $validate = new Validate($this->validateOptions['rule'],$this->validateOptions['msg']);
+
+        $result = $validate->check($data);
         
-        return $info;
+        if(!$result){
+            return ['status'=>false,'success'=>false,'message'=>$validate->getError(),'code'=>500];
+        }
+       
+        
+
+        return ['status'=>true];
     }
 
 
@@ -849,63 +1126,56 @@ class HyList extends HyBase
      * @param  [type] &$field [description]
      * @return [type]         [description]
      */
-    protected function fieldsTypeDealing(){
-        foreach($this->fieldsOptions as $k=>&$v){
-            if(isset($v['form'])&&is_array($v['form'])){
-                $v['form']['edit'] = $v['form']['add'] = true;
-                
-                if(isset($v['form']['type'])){
-                    switch(strtolower($v['form']['type'])){
-                        case 'daterange':
-                            break;
-                        case 'select':
-                            break;
-                        /*case 'file':
-                            $v['form']['callback'] = array('uploadFile');
-                            break;*/
-                    }
-                }else{
-                    $v['form']['type'] = 'text';
-                }           
-            }
+    protected function fieldsTypeDealing($type,&$data){
 
-            if(isset($v['form']['fill'])){
-                $fill = $v['form']['fill'];
-                foreach($fill as $k1=>$v1){
-                    // if($k1 === 'both') $v['form']['edit'] = $v['form']['add'] = true;
-                    if($k1 == "add") 
-                        $v['form']["edit"] = false;
-                    elseif($k1 == "edit")
-                        $v['form']['add'] = false;
+        
+
+        foreach ($data as $k => $v) {
+            $option = $this->fieldOptionsMap[$k];
+            // var_dump($option);
+            /*过滤掉不允许出现的字段*/
+            if(!isset($option['form']['type']) || !is_array($option['form']['type'])){ 
+                unset($data[$k]);
+                continue;
+            }
+            // var_dump($option['form']['type']);
+
+            if(!in_array('both',$option['form']['type']))
+                if(!in_array($type,$option['form']['type'])){
+                    unset($data[$k]);
+                    continue;
+
                 }
-            }   
+
+            
         }
     }
     
     protected function initCallback(&$data){
-
-        foreach ($this->fieldsOptions as $k => &$v) {
-            if($v['form']['type'] === 'file'){
-                /*if(!isset($v['form']['file'])){
-                    $v['form']['file'] = array(
-                        'ext'   =>  'jpg,png,gif',
-                        'size'=>521000,
-                        'mimeType'=>'image/jpeg,image/png,image.gif'
-                    )
-                }*/
-                // $data[$k] = $this->uploadFile($k,$v['form']['file']);
-                continue;
-            }
-
-            $cbArr = isset($v['form']['callback'])?$v['form']['callback']:null;
-            if(is_null($cbArr)) continue;
-
+        // var_dump($data);
+        foreach ($this->fieldsOptions as $k => $v) {
+            // if($v['type'] === 'file'){
+            //     if(!isset($v['form']['file'])){
+            //         $v['form']['file'] = array(
+            //             'ext'   =>  'jpg,png,gif',
+            //             'size'=>521000,
+            //             'mimeType'=>'image/jpeg,image/png,image.gif'
+            //         )
+            //     }
+            //     // $data[$k] = $this->uploadFile($k,$v['form']['file']);
+            //     continue;
+            // }
             
-            $cb = $cbArr[0];
-            // var_dump($data[$k]);
-            $data[$k] = $this->callbackHandler($cb,$data[$k],$data);
+
+            $cb = isset($v['form']['callback'])?$v['form']['callback']:null;
+
+            // var_dump($v);
+            if(is_null($cb)) continue;
+
+
+            $data[$v['name']] = $this->callbackHandler($cb,$data[$v['name']],$data);
         }
-        // dump($data);
+
     }
 
     /**
@@ -916,27 +1186,41 @@ class HyList extends HyBase
      */
     private function autoFill($type,&$data){
         $fieldsOptions = $this->fieldsOptions;
+        // var_dump($type);
+        // var_dump($data);
         foreach ($fieldsOptions as $k => $v) {
-            if(isset($v['form']['fill'])){
-                $fill = $v['form']['fill'];
-                if(!is_array($fill)||(!isset($fill[$type])&&!isset($fill['both']))) continue;
-                
-                if($cbArr = $fill[$type]?:$fill['both']){
-                    $cb = array_shift($cbArr);
-                    $data[$k] = $this->callbackHandler($cb,$cbArr,$data);
-                    if($data[$k]===false) unset($data[$k]);
-                }
-            }
+            if(!isset($v['form']) || !isset($v['form']['fill']) || !is_array($v['form']['fill']) || !isset($v['form']['fill']['type'])) continue;
             
-        }
-        
+            $fill = $v['form']['fill'];
 
+            if($fill['type'] != 'both' && $fill['type'] != $type) continue;
+
+            if(!isset($fill['callback'])) continue;
+
+            $cbArr = $fill['callback'];
+
+            /*第二个参数为填充值*/
+            $cb = array_shift($cbArr);
+            $initVal = array_shift($cbArr);
+            // var_dump($v['name']);
+            
+            $data[$v['name']] = $this->callbackHandler($cb,$initVal);
+
+            if($data[$v['name']]===false) unset($data[$v['name']]);
+
+               
+        }
+    }
+
+    protected function callback_formatTime($value){
+        // var_dump($value);
+        return time();
     }
 
 
     protected function callback_value($value,$data){
         // dump($value);
-        return $value[0];
+        return $value;
     }
 
     protected function uploadFile($filename,$options){
@@ -953,6 +1237,7 @@ class HyList extends HyBase
        // remove all non-printable characters. CR(0a) and LF(0b) and TAB(9) are allowed
        // this prevents some character re-spacing such as <java\0script>
        // note that you have to handle splits with \n, \r, and \t later since they *are* allowed in some inputs
+       /*过滤这三组字符[\x00-\x08,\x0b-\x0c,\x0e-\x19]*/
        $val = preg_replace('/([\x00-\x08,\x0b-\x0c,\x0e-\x19])/', '', $val);
        // straight replacements, the user should never need these since they're normal characters
        // this prevents like <IMG SRC=@avascript:alert('XSS')>
@@ -964,13 +1249,16 @@ class HyList extends HyBase
           // ;? matches the ;, which is optional
           // 0{0,7} matches any padded zeros, which are optional and go up to 8 chars
           // @ @ search for the hex values
+          // 把$search[$i]转成ascii码以后转成十六进制
           $val = preg_replace('/(&#[xX]0{0,8}'.dechex(ord($search[$i])).';?)/i', $search[$i], $val); // with a ;
           // @ @ 0{0,7} matches '0' zero to seven times
           $val = preg_replace('/( {0,8}'.ord($search[$i]).';?)/', $search[$i], $val); // with a ;
        }
        // now the only remaining whitespace attacks are \t, \n, and \r
+       // 可能存在的恶意标签
        $ra1 = array('javascript', 'vbscript', 'expression', 'applet', 'meta', 'xml', 'blink', 'link', 'script', 'embed', 'object', 'iframe', 'frame', 'frameset', 'ilayer', 'layer', 'bgsound', 'title', 'base');
-       
+    
+        //所有的事件都过滤掉
        $ra2 = array('onabort', 'onactivate', 'onafterprint', 'onafterupdate', 'onbeforeactivate', 'onbeforecopy', 'onbeforecut', 'onbeforedeactivate', 'onbeforeeditfocus', 'onbeforepaste', 'onbeforeprint', 'onbeforeunload', 'onbeforeupdate', 'onblur', 'onbounce', 'oncellchange', 'onchange', 'onclick', 'oncontextmenu', 'oncontrolselect', 'oncopy', 'oncut', 'ondataavailable', 'ondatasetchanged', 'ondatasetcomplete', 'ondblclick', 'ondeactivate', 'ondrag', 'ondragend', 'ondragenter', 'ondragleave', 'ondragover', 'ondragstart', 'ondrop', 'onerror', 'onerrorupdate', 'onfilterchange', 'onfinish', 'onfocus', 'onfocusin', 'onfocusout', 'onhelp', 'onkeydown', 'onkeypress', 'onkeyup', 'onlayoutcomplete', 'onload', 'onlosecapture', 'onmousedown', 'onmouseenter', 'onmouseleave', 'onmousemove', 'onmouseout', 'onmouseover', 'onmouseup', 'onmousewheel', 'onmove', 'onmoveend', 'onmovestart', 'onpaste', 'onpropertychange', 'onreadystatechange', 'onreset', 'onresize', 'onresizeend', 'onresizestart', 'onrowenter', 'onrowexit', 'onrowsdelete', 'onrowsinserted', 'onscroll', 'onselect', 'onselectionchange', 'onselectstart', 'onstart', 'onstop', 'onsubmit', 'onunload');
        $ra = array_merge($ra1, $ra2);
        $found = true; // keep replacing as long as the previous round replaced something

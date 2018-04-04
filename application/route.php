@@ -65,11 +65,27 @@ foreach ($routeRules as $k => $v) {
 }
 
 // print_r($rules);
+// Route::rule('xxx','xxx/delete','OPTIONS'); 
+
+// $ruleOptions = [];
+// foreach ($rules as $k => $v) {
+//     foreach ($v as $k1 => $v1) {
+//       // $ruleOptions[$k1] = $v1;
+//       Route::any($k,$v);
+//     }
+// }
+// var_dump($ruleOptions);
+// Route::rule($ruleOptions,'','OPTIONS');
 
 Route::get($rules[0]);
+
 Route::post($rules[1]);
+
 Route::put($rules[2]);
+
 Route::delete($rules[3]);
+
+
 unset($params);
 unset($rules);
 return [

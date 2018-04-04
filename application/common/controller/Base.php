@@ -29,7 +29,7 @@ class Base extends Controller
 	// }
 
 	public function _initialize(){
-		
+        
 		$this->requestInfo();
 
         // dump(Request::instance()->module());
@@ -41,13 +41,13 @@ class Base extends Controller
 		} */
 		
 		//获取模块信息
-		$this->setHeader();
+		// $this->setHeader();
 		
 	}
 
 	protected function setHeader(){
 		header("Content-Type: text/html;charset=utf-8"); 
-		header('Access-Control-Allow-Origin:*');
+		header('Access-Control-Allow-Origin: http://localhost:8000');
         header('Access-Control-Allow-Credentials: true');
         header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
         header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Accept, authKey, sessionId");

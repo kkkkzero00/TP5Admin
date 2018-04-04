@@ -6,20 +6,20 @@ use think\Config;
 use think\Db;
 use app\common\model\HyAuth;
 use think\Session;
+use think\Cookie;
 
 class HyAccount extends Model
 {
-    public $name = 'user';
+    public $name = 'frame_manager';
 
     public function roles()
     {
         return $this->belongsToMany('HyRole', 'frame_access', 'role_id', 'user_id');
     }
 
-	public function login($username, $password, $verifyCode = '', $isRemember = false, $type = false){
+    public function checkUserExist($account, $password, $verifyCode = '', $isRemember = false, $type = false){
 
-        // dump($username);
-        if (!$username) {
+        if (!$account) {
             $this->error = '帐号不能为空';
             return false;
         }
@@ -27,6 +27,8 @@ class HyAccount extends Model
             $this->error = '密码不能为空';
             return false;
         }
+
+
         if (config('common.IDENTIFYING_CODE') && !$type) {
             if (!$verifyCode) {
                 $this->error = '验证码不能为空';
@@ -41,7 +43,7 @@ class HyAccount extends Model
         
         // $username = act_decrypt($username);
         // debug('begin');
-        $userInfo = $this->where(['username'=>$username])->find();
+        $userInfo = $this->where(['id'=>$account])->find();
         // debug('end');
         // print_r(debug('begin','end',6).'s');
 
@@ -75,11 +77,46 @@ class HyAccount extends Model
             $this->error = '帐号已被禁用';
             return false;
         }
+
+
         // 获取菜单和权限,权限验证时以distance为判断基准
         // debug('begin');
-        $dataList = $this->getMenuAndRule($userInfo['id']);
-        // debug('end');
-        // print_r(debug('begin','end',6).'s');
+        // $dataList = $this->getMenuAndRule($userInfo['id']);
+        // var_dump($userInfo);
+        
+        $now  = time();
+        /*一天后过期*/
+        $expireTime = ($now + 24*60*60);
+        Cookie::init(['prefix'=>null,'expire'=>$expireTime,'path'=>'/']);
+
+        Cookie::set(
+            'u_Tok',
+            json_encode(["id"=>$userInfo['id'],"deadline"=>$expireTime])
+        );
+
+        // var_dump(Cookie::get());
+
+        return true;
+    }
+
+	public function getUserInfo($id){
+
+        $userInfo = $this
+                    ->where(['id'=>$id,'status'=>['neq',0]])
+                    ->field('id,name,role_id,gender,login_last_time,password')
+                    ->find();
+       
+        $userInfo = $userInfo->toArray();
+
+        $roles = explode(",",$userInfo['role_id']);
+        sort($roles);
+
+
+        $userInfo['role_id'] = $roles;
+
+        $dataList = $this->getMenuAndRule($roles);
+       //  // debug('end');
+       //  // print_r(debug('begin','end',6).'s');
 
         if (!$dataList['menusList']) {
             $this->error = '没有权限';
@@ -93,17 +130,16 @@ class HyAccount extends Model
         }*/
 
         // 保存缓存        
-        $data = [];
+        
         // session_start();
         
-        $userInfo = $userInfo->toArray(); 
-
         $info['userInfo'] = $userInfo;
         $info['sessionId'] = session_id();
 
         //这个authKey就是判定某个用户在线登录状态的唯一标识，在权限认证里面通过这个authKey，在缓存中取出这个用户的具体信息
-        $authKey = act_encrypt($userInfo['username'].$userInfo['password'].$info['sessionId']);
+        $authKey = act_encrypt($userInfo['id'].$userInfo['password'].$info['sessionId']);
         
+        unset($userInfo['password']);
 
         $info['authList'] = $dataList['rulesList'];
         $info['authKey'] = $authKey;
@@ -111,103 +147,77 @@ class HyAccount extends Model
         // dump($info);
         // 存入缓存
         cache('Auth_'.$authKey, null);
-        cache('Auth_'.$authKey, $info, config('common.LOGIN_SESSION_VALID'));
         cache('menusList',null);
-        cache('menusList',$dataList['menusList']);
+
+        cache('Auth_'.$authKey, $info, config('common.LOGIN_SESSION_VALID'));
+
+        $routes = [];
+        foreach ($dataList['menusList'] as $k => $v) {
+            $routes[$v['id']] = $v['route'];
+        }
+
+        cache('MenuRoutes_'.$authKey,$routes);
 
         // dump(config('common.LOGIN_SESSION_VALID'));
         // 返回信息
         
+        $data = [];
         $data['authKey']        = $authKey;
         $data['sessionId']      = $info['sessionId'];
         $data['userInfo']       = $userInfo;
-        $data['authList']       = $dataList['rulesList'];
-        $data['menusList']      = $dataList['menusList'];
+        $data['auth']       = $dataList['rulesList'];
+        $data['menus']      = $dataList['menusList'];
 
         Session::set('authKey',$authKey);
-        Session::set('userId',$userInfo['id']);
-        Session::set("sessionId",$info['sessionId']);
+        // Session::set('userId',$userInfo['id']);
+        // Session::set("sessionId",$info['sessionId']);
         
         return $data;
     }
 
-    public function getMenuAndRule($u_id){
+    public function getMenuAndRule($role_id){
         
-        if ($u_id === 1) {        
+        $menusList = $rulesList = [];
+
+        if ($role_id[0] === '1') {
+
             $menusList = Db::name('frame_rule')
                             ->where([
-                                'statis'=>1,
-                                'type'=>['in',['system','nav','menu']]
+                                'status'=>1,
+                                'type'=>['in',['nav','menu','detail']]
                                 ])
-                            ->order('sort asc')
+                            ->field('id,pid,name,type,icon,model,route,path')
+                            ->order('id asc')
                             ->select();
 
             $rulesList = 'all';
         } else {
+        
+            $rule_ids = Db::name('frame_access')
+                        ->where(['role_id'=>['in',$role_id]])
+                        ->column('rule_id');
+            $rule_ids = array_unique($rule_ids);
 
-            /*
-            
-            debug('begin');  
-            $roles = $this->get($u_id)->roles;
-            debug('end');
-            print_r(debug('begin','end',6).'s'."<br>");*/
 
-            // debug('begin');  
-            $roles = Db::name('frame_access')
-                        ->alias('fa')
-                        ->join('__FRAME_ROLE__ ro','user_id = '.$u_id.' AND role_id = ro.id')
-                        ->column('rules');
-            
-
-            // debug('end');
-            // print_r(debug('begin','end',6).'s'."<br>");
-      
-            $ruleIds = [];
-            
-            // foreach ($roles as $k => $v) {
-            //    $ruleIds = array_unique(array_merge($ruleIds,explode(',',$v)));
-            // }
-            
-            // $map['id'] = ['in',$ruleIds];
-     
-            $map['id'] = ['in',$roles[0]];
-            $map['status'] = 1;
-
-            
-            // debug('begin');
-            $rules = Db::name('frame_rule')->where($map)->field('id,pid,name,type,source,distance,icon')->select();
-            
-            
-            $menusList = $rulesList = [];
-            
+            $rules = Db::name('frame_rule')
+                            ->where([
+                                'status'=>1,
+                                'id' => ['in',$rule_ids]
+                            ])
+                            ->field('id,pid,name,type,icon,model,route,path,distance')
+                            ->order('id asc')
+                            ->select();
 
             foreach ($rules as $k => $v) {
-                if(in_array($v['type'],['menu','url'])){
+                if($v['type'] == 'url'){
                     $rulesList[$v['id']] = $v['distance'];
-                }        
-            }
-
-            foreach ($rules as $k => $v) {
-                if(!in_array($v['type'],['system','nav','menu'])){
-                    continue;
                 }
-                if($v['pid'] == 0){
+
+                if(in_array($v['type'],['nav','menu'])){
                     unset($v['distance']);
-                    $menusList[$k] = $v;
-                }
-
-                foreach ($rules as $k1 => $v1) {
-                    if(!in_array($v1['type'],['system','nav','menu'])){
-                        continue;
-                    }
-
-                    if($v1['pid'] == $v['id']){
-                        unset($v1['distance']);
-                        $menusList[$k]['child'][] = $v1;
-                    }
-                }
-            }
-            
+                    array_push($menusList,$v);
+                }     
+            }  
         }
 
         $ret = [
@@ -219,10 +229,9 @@ class HyAccount extends Model
     }
 
 
-    public function getRole(){
 
-    }
 
+    
     /*public function switchAuth(){
         $u_id = Session::get('userId');
         if($u_id == 1){

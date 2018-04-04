@@ -106,7 +106,7 @@ return [
     // 表单请求类型伪装变量
     'var_method'             => '_method',
     // 表单ajax伪装变量
-    'var_ajax'               => '_ajax',
+    'var_ajax'               => '_method',
     // 表单pjax伪装变量
     'var_pjax'               => '_pjax',
     // 是否开启请求缓存 true自动缓存 支持设置请求缓存规则
@@ -239,8 +239,9 @@ return [
     ],
 
     // 加密秘钥 
-    // 文件：
+    
     'crypto'                =>  [
+        // 文件：
         'CRYPT_KEY_FILE'        =>  '$%&HGfhs+KsTPxlR]K~guIY^(6kfBIFS',
         // 通信：
         'CRYPT_KEY_ACT'         =>  'MY^zC5hdl*.HZ0DsouH=m].Us86yM4!S',
@@ -256,6 +257,21 @@ return [
         //是否开启验证码
         'IDENTIFYING_CODE'=>false,
         // 设置缓存时间
-        'LOGIN_SESSION_VALID'=>3600*24
+        'LOGIN_SESSION_VALID'=>3600*24,
+
+        'resJsonKeys'=>[
+            'info'=>'message',
+            'code'=>'code',
+            'success'=>'success',
+            'status'=>'status',
+            'data'=>'data',
+            'total'=>'total'
+
+        ],
+
+        'pageKeys'=>[
+            'page'=>'currPage',
+            'pageSize'=>'pageSize'
+        ]
     ]
 ];

@@ -5,37 +5,122 @@ use think\View;
 use think\Loader;
 use think\Request;
 
-abstract class ListManage extends Base
+class ListManage extends Base
 {   
 
     public function _initialize(){
 
         parent::_initialize();
-        
-        // $url = strtolower($this->request->module() . '/' . $this->request->controller() . '/' . $this->request->action());
-        // dump($url);
-
+   
         if($this->model === null){
-            // dump(CONTROLLER_NAME);
-            $this->model = Loader::model(CONTROLLER_NAME);
+            $model = $this->request->module().'/'.CONTROLLER_NAME;
+            $this->model = Loader::model($model);
         }
-        // dump($this->model);
-        
     }
 
-    abstract protected function index();
+    protected $resJson = [
+        'data'=>'',
+        'message'=>'',
+        'status'=>false,
+        'code'  => 200,
+        'total' => 0
+    ];
 
-    abstract protected function lists();
-    
-    abstract protected function insert();
+    /**
+     * 显示资源列表 获取所有数据
+     *
+     * @return \think\Response
+     */
+    public function lists(){
 
-    abstract protected function read($id);
+        $json = $this->resJson;
+        $this->model->ajax('list',$json);
 
-    abstract protected function edit($id);
+        return json($json);
+    }
 
-    abstract protected function update($id);
+    /**
+     * 保存新建的资源  新增数据
+     *
+     * @param  \think\Request  $request
+     * @return \think\Response
+     */
+    public function insert()
+    {
+        $request = Request::instance()->post();
+        $json = $this->resJson;
+        // var_dump($request);
+        $this->model->ajax("insert",$json,$request);
 
-    abstract protected function delete($id);
+        return json($json);
+    }
+
+    /**
+     * 显示指定的资源 获取某个数据的值
+     *
+     * @param  int  $id
+     * @return \think\Response
+     */
+    public function read($id)
+    {
+        
+        $get = Request::instance()->get();
+        
+        $json = $this->resJson;
+        // var_dump($id);
+        
+        $this->model->ajax("list",$json,null,$id);
+        // dump(34);
+        return json($json);
+    }
+
+    /**
+     * 显示编辑资源表单页. 获取某个数据的值进行编辑
+     *
+     * @param  int  $id
+     * @return \think\Response
+     */
+    public function edit($id)
+    {
+
+        $json = $this->resJson;
+        // $this->model->ajax("edit",$json,null,$id);
+
+        return json($json);
+    }
+
+    /**
+     * 保存更新的资源 更新某个数据的值
+     *
+     * @param  \think\Request  $request
+     * @param  int  $id
+     * @return \think\Response
+     */
+    public function update($id)
+    {
+        $request = Request::instance()->put();
+        
+        $json = $this->resJson;
+        $this->model->ajax("update",$json,$request);
+        // var_dump($json);
+        return json($json);
+    }
+
+    /**
+     * 删除指定资源 删除某个数据
+     *
+     * @param  int  $id
+     * @return \think\Response
+     */
+    public function delete()
+    {
+        $request = Request::instance()->param();
+        // var_dump($request);
+        $json = $this->resJson;
+        $this->model->ajax("delete",$json,$request);
+
+        return json($json);
+    }
 
 
 }
