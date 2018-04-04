@@ -169,6 +169,21 @@ class Manager extends HyList
                         // 'callback'=>['']
                     ]
                 ]
+            ],
+            [
+                'name'=>'password',
+                'label'=>'密码',
+                'render'=>[
+                    'show'=>false
+                ],
+                'form' => [
+                    'type'=>['add','edit'],
+                    'rules'=>[
+                        'required'=> false,
+                        'message' => "请输入正确密码格式！"
+                    ],
+                    'callback'=>['pwdEncrypt']
+                ]
             ]
         ];
            
@@ -224,9 +239,10 @@ class Manager extends HyList
         return 'title like '.'\'%'.strtolower($value).'%\'';
     }
 
-    protected function callback_setVal($value){
-        // var_dump($value.'_set');
-        return $value;
+    protected function callback_pwdEncrypt($value){
+      var_dump($value);
+      return $value;
     }
+
 
 }

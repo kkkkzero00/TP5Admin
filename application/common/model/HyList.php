@@ -350,16 +350,14 @@ class HyList extends HyBase
 
 
             if(!$isConfig) continue;
-           
-            if($v == null || (is_array($v) && count($v) == 0) || (is_string($v) && $v == "")) continue;
-
             
+            if($v == null || (is_array($v) && count($v) == 0) || (is_string($v) && $v == "")) continue;
             
             $searchOptions = isset($fieldOption['search']['backend'])?$fieldOption['search']['backend']:null;
 
             $type = $searchOptions?(isset($searchOptions['type'])?$searchOptions['type']:'like'):'equal';
             // var_dump($type);
-            // var_dump($fieldOption);
+            
 
             $table = isset($fieldOption['table'])?DTP.$fieldOption['table']:null;
             
@@ -369,6 +367,7 @@ class HyList extends HyBase
 
             /*如果使用了callbackHander就默认使用字符串查询*/
             if($callback = isset($searchOptions['callback'])?$searchOptions['callback']:false){
+                
 
                 foreach ($callback as $k2 => $v2) {
                     $cb = $callback[$k2];
@@ -380,16 +379,22 @@ class HyList extends HyBase
                 continue;
             }
 
-
-
             switch($type){  
                 case 'daterange':
-                    if($this->autoWriteTimestamp === true){
-                        $v[0] = strtotime($v[0]);
-                        $v[1] = strtotime($v[1]);
-                    }
+        
+                    $v = explode(",",$v);
+
+                    $v[0] = strtotime($v[0]);
+                    $v[1] = strtotime($v[1]);
 
                     $searchArr[$temp] = ['between',[$v[0],$v[1]]];
+                    /*   
+                        1486474923  2017-2-7
+    
+                        1486396800
+
+                        1486561323  2017-2-8
+                     */
                     break;
                 case 'like':
                     $searchArr[$temp] = ['like','%'.$v.'%']; break;
@@ -450,6 +455,7 @@ class HyList extends HyBase
      
         $get = Request::instance()->get();
 
+        // var_dump($_GET);
         $pageKeys = Config::get('common.pageKeys');
         
         //获取alias
@@ -531,10 +537,8 @@ class HyList extends HyBase
         if($whereOr = $this->sqlOptions['whereOr']?:null){
             $this->whereOr($whereOr);
         }
-        // dump($field);
-        // dump($join);
-        // dump($where);
 
+        // var_dump($where);
 
         $obj = $this
                 ->order((is_null($alias)?'':$alias).'.'.$this->pageOptions['order'])
@@ -591,6 +595,10 @@ class HyList extends HyBase
 
         }
 
+        // $cry = act_encrypt(123123);
+        // var_dump($cry);
+        // var_dump(act_decrypt($cry));
+
         if(isset($alias)) $this->alias($alias);
         if(isset($where)) $this->where($where);
         if(isset($whereOr)) $this->whereOr($whereOr);
@@ -599,8 +607,8 @@ class HyList extends HyBase
         $count = $this->count((isset($alias)?$alias.'.':'').$this->getPk())?:0;
 
 
-        // dump($where);
-
+        // dump($data);
+    
         $json = [
             $dataKey=>$data,
             'config'=>$this->fieldsOptions,
@@ -668,29 +676,30 @@ class HyList extends HyBase
      * @return [type]        [description]
      */
     protected function ajax_update(&$json,$req){
+
         $_pk = isset($req['_pk'])?$req['_pk']:null;
         $pk = act_decrypt($_pk);
-        
-
+     
         $infoKey = $this->resJsonKeys['info'];
         $successKey = $this->resJsonKeys['success'];
         $codeKey = $this->resJsonKeys['code'];
         $statusKey = $this->resJsonKeys['status'];
+     
 
         // var_dump($pk);
-        if($pk == null || $req['token'] != Session::get('form_token')){
+        if(!$pk || $req['token'] != Session::get('form_token')){
             $json[$infoKey] = '请勿非法操作，拉黑后果自负！';
             $json[$statusKey] = false;
             $json[$codeKey] = 500;
             
         }else{
             unset($req['_method']);
-            unset($req['id']);
             unset($req['_pk']);
             unset($req['token']);
 
-            // dump($req);
-            $json = $this->write('edit',$req,$pk);
+            $id = $req['id'];
+
+            $json = $this->write('edit',$req,$id);
         }
 
         
@@ -952,7 +961,7 @@ class HyList extends HyBase
         /*自动填充*/
         $model->autoFill($type,$data);
 
-        var_dump($data);
+        // var_dump($data);
         $dataList = [];
         $current = $model->table;
 
@@ -1065,8 +1074,10 @@ class HyList extends HyBase
                 
 
             }elseif($type == 'edit'){
+                // var_dump($dataList);
+                // var_dump($pk);
                 $res = $model->isUpdate(true)->allowField(true)->save($dataList,[$this->getPk()=>$pk]);
-
+          
                 if(!!$res){ 
                     $status = true;
                     $info = '数据更新成功！';
@@ -1131,6 +1142,7 @@ class HyList extends HyBase
         
 
         foreach ($data as $k => $v) {
+            if(!isset($this->fieldOptionsMap[$k])) continue;
             $option = $this->fieldOptionsMap[$k];
             // var_dump($option);
             /*过滤掉不允许出现的字段*/
