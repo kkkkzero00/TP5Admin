@@ -25,12 +25,12 @@ class User extends HyList
      * [initInfoOptions 初始化标题]
      * @return [array] [description]
      */
-    // protected function initInfoOptions() {
-    //     return array (
-    //         'title' => '用户管理',
-    //         'subtitle' => '管理所有用户信息' 
-    //     );
-    // }
+    protected function initInfoOptions() {
+        return array (
+            'title' => '用户管理',
+            'subtitle' => '管理所有用户信息' 
+        );
+    }
 
     protected function initSqlType(){
         return 'getDtData';
