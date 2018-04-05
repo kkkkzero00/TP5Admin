@@ -96,3 +96,28 @@ function tokenValidator($key=false){
 	}
 	return Session::has($key) ? Session::get($key) : false;
 }
+
+
+function aes_communication_decrypt($value,$key,$iv){
+	 while (strlen($key) < 16){
+        $key = $key."\0";
+    }
+
+    $iv = base64_decode($iv);
+
+    $result = trim(mcrypt_decrypt(MCRYPT_RIJNDAEL_128,$key,base64_decode($value),MCRYPT_MODE_CBC,$iv));
+
+    return $result;
+}
+
+function pwdEncrypt($value){
+	$privateKey = Config::get("crypto.CRYPT_KEY_PWD");
+    $publicKey = Config::get("crypto.PWD_HASH_ADDON");
+
+    $value = sha1($value.$publicKey);
+
+    /*每次生成的密钥都不同，但是只要私钥相同就能解出相同的明文*/
+    $encrypt = aes_encrypt($value,$privateKey);
+
+    return $encrypt;
+}

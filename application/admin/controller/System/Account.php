@@ -30,6 +30,8 @@ class Account extends Base
     public function checkUserExist($value=''){
 
       $data = Request::instance()->post();
+      unset($data['_method']);
+      
       $json = $this->resJson;
       $userModel = new HyAccount();
 
@@ -60,11 +62,12 @@ class Account extends Base
 
     public function userPermission(){
         
-      $data = Request::instance()->get();
+      // $data = Request::instance()->get();
       
       $cookies = Cookie::get();
       $token = (!empty($cookies['u_Tok']))?json_decode($cookies['u_Tok']):'';
 
+      // var_dump($data);
       $userModel = new HyAccount();
      
       if($token){
@@ -154,9 +157,15 @@ class Account extends Base
      * [getkeys 获取密钥]
      * @return [type] [description]
      */
-    public function getkeys(){
-      $crypto = Config::get("crypto.PWD_HASH_ADDON");
-      // var_dump($crypto);
+    public function getPublickey(){
+      $publicKey = Config::get("crypto.PWD_HASH_ADDON");
+      $iv = Config::get("crypto.CRYPT_KEY_IV");
+
+      return json([
+        'code'=>200,
+        'status'=>true,
+        'token'=>$publicKey.$iv
+      ]);
       
     }
 

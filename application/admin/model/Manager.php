@@ -1,6 +1,8 @@
 <?php
 namespace app\admin\model;
 use app\common\model\HyList;
+use think\Config;
+
 
 class Manager extends HyList
 {   
@@ -240,8 +242,7 @@ class Manager extends HyList
     }
 
     protected function callback_pwdEncrypt($value){
-      var_dump($value);
-      return $value;
+        return pwdEncrypt($value);
     }
 
 

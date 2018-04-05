@@ -1118,6 +1118,10 @@ class HyList extends HyBase
         }
 
 
+        if(!isset($this->validateOptions['rule']) || !isset($this->validateOptions['rule'])){
+            return ['status'=>true];
+        }
+
         $validate = new Validate($this->validateOptions['rule'],$this->validateOptions['msg']);
 
         $result = $validate->check($data);

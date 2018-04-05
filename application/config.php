@@ -241,16 +241,18 @@ return [
     // 加密秘钥 
     
     'crypto'                =>  [
-        // 文件：
+        // 文件：32位
         'CRYPT_KEY_FILE'        =>  '$%&HGfhs+KsTPxlR]K~guIY^(6kfBIFS',
         // 通信：
         'CRYPT_KEY_ACT'         =>  'MY^zC5hdl*.HZ0DsouH=m].Us86yM4!S',
-        // 密码：
+        // 密码（私钥）：
         'CRYPT_KEY_PWD'         =>  'a@#y$V4%9i$&*JG%$#Li*(K:!*3%Q~p0',
-        // 密码哈希前补充的复杂串：login-addon @*H$%Y:1&4
+        // 密码（公钥）哈希前补充的复杂串：login-addon @*H$%Y:1&4,长度为10位
         'PWD_HASH_ADDON'        =>  '@*H$%Y:1&4',
         // 其他字段：
-        'CRYPT_KEY_VAL'         =>  'fb+%&*HJK56-^$:(5KQ&9hK@(SZ^175A',
+        'CRYPT_KEY_VAL'         =>  'fb+%&*HJK56-^$:(5KQ&9hK@(SZ^175A', 
+        // 向量：
+        'CRYPT_KEY_IV'          =>  'fXyFiQCfgiKcyuVNCGoILQ=='
     ],
 
     'common'=>[

@@ -40,10 +40,19 @@ class HyAccount extends Model
             //     return false;
             // }
         }
-        
-        // $username = act_decrypt($username);
+
+        $privateKey = Config::get("crypto.CRYPT_KEY_PWD");
+
+        $publicKey = Config::get("crypto.PWD_HASH_ADDON");
+
+        $iv = Config::get("crypto.CRYPT_KEY_IV");
+        //先将公钥转成16进制，然后由于php只支持16、24.32位的长度，所以要进行切割
+       
+
+        $decrypt_account = aes_communication_decrypt($account,$publicKey,$iv);
+
         // debug('begin');
-        $userInfo = $this->where(['id'=>$account])->find();
+        $userInfo = $this->where(['id'=>$decrypt_account])->find();
         // debug('end');
         // print_r(debug('begin','end',6).'s');
 
@@ -52,23 +61,13 @@ class HyAccount extends Model
             return false;
         }
 
-        /*
-        
-        //先将前台提交过来的密码进行解密
-        $key = substr($user['password'], 5, 32);
-        $password = aes_decrypt_base($password,$key);
 
-        //从后台取出来的密码也进行解密
-        $pwdsha1 = $this->pwdDecrypt($userInfo['password']);
-        
+        //从后台取出来的密码进行解密
+        $pwdsha1 = aes_decrypt($userInfo['password'],$privateKey);
+        var_dump($pwdsha1);
+        var_dump($password);
 
-        if ($password !== $pwdsha1) {
-            $this->error = '密码错误';
-            return false;
-        }
-        */
-
-        if($userInfo['password']!=$password){
+        if($pwdsha1!=$password){
             $this->error = '密码错误';
             return false;
         }
@@ -229,8 +228,6 @@ class HyAccount extends Model
     }
 
 
-
-
     
     /*public function switchAuth(){
         $u_id = Session::get('userId');
@@ -253,24 +250,4 @@ class HyAccount extends Model
         
     }*/
 
-    /**
-     * 密码加密
-     * @param string $pwd
-     * @return string
-     */
-    public function pwdEncrypt($pwd, $isSha1=false){
-        // C('PWD_HASH_ADDON')=>'@*H$%Y:1&amp;4'
-        if(!$isSha1) $pwd = sha1($pwd.Config::get('crypto.PWD_HASH_ADDON'));
-        return aes_encrypt($pwd, Config::get('crypto.CRYPT_KEY_PWD'));
-    }
-
-    /**
-     * 密码解密
-     * @param string $pwd
-     * @return string
-     */
-    public function pwdDecrypt($pwd){
-        /*C('CRYPT_KEY_PWD')=>a@#y$V4%9i$&amp;*JG%$#Li*(K:!*3%Q~p0*/
-        return aes_decrypt($pwd, Config::get('crypto.CRYPT_KEY_PWD'));
-    }
 }

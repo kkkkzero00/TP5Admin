@@ -364,7 +364,6 @@ class User extends HyList
     }
 
     protected function callback_setVal($value){
-        // var_dump($value.'_set');
         return $value;
     }
 
