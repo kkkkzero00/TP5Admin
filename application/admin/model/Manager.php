@@ -2,7 +2,7 @@
 namespace app\admin\model;
 use app\common\model\HyList;
 use think\Config;
-
+use think\Db;
 
 class Manager extends HyList
 {   
@@ -121,9 +121,35 @@ class Manager extends HyList
                   ]
                 ]
             ],
+            [
+                'name'=>'name',
+                'label'=>'姓名',
+                'render'=>[
+                    'show'=>true
+                ],
+                'form' => [
+                      'type'=>['add','edit'],
+                      'rules'=>[
+                          'required'=> false,
+                          'message' => "请输入正确姓名格式！"
+                      ],
+                      // 'callback'=>['setVal']
+                ],
+                
+                'search'=>[
+                    'open'=>true,
+                    'rules'=>[
+                        'type' => 'string'
+                    ],
+                    'backend'=>[
+                        'type'=>'like',
+                        // 'callback'=>['']
+                    ]
+                ]
+            ],
+
 
             [
-                'table' => 'frame_manager',
                 'name'=>'gender',
                 'label' => '性别',
                 'render'=>[
@@ -147,31 +173,7 @@ class Manager extends HyList
                 ]
             ],
 
-            [
-                'name'=>'name',
-                'label'=>'姓名',
-                'render'=>[
-                    'show'=>true
-                ],
-                'form' => [
-                      'type'=>['add','edit'],
-                      'rules'=>[
-                          'required'=> false,
-                          'message' => "请输入正确姓名格式！"
-                      ]
-                ],
-                
-                'search'=>[
-                    'open'=>true,
-                    'rules'=>[
-                        'type' => 'string'
-                    ],
-                    'backend'=>[
-                        'type'=>'like',
-                        // 'callback'=>['']
-                    ]
-                ]
-            ],
+            
             [
                 'name'=>'password',
                 'label'=>'密码',
@@ -186,14 +188,56 @@ class Manager extends HyList
                     ],
                     'callback'=>['pwdEncrypt']
                 ]
+            ],
+            [
+              'name'=>'role_id',
+              'label' => '角色',
+              'render'=>[
+                  'show'=>true
+              ],
+              'form' => [
+                'type'=>['add','edit'],
+                'rules'=>[
+                    'type'=>'array',
+                    // required:true
+                ]
+              ],
+              'search'=>[
+                'open'=>true,
+                'rules'=>['type'=>'array']
+              ], 
+              'type'=>'multiselect',
+            ],
+            [
+              'name'=>'create_time',
+              'label'=>'创建时间',
+              'type'=>'RangePicker',
+              'render'=>[
+                'show'=>true
+              ],
+              'form' => [
+                  'fill'=>[
+                    'type'=>'add',
+                    'callback'=>[['formatTime']]
+                  ]
+              ],
+              'search'=>[
+                  'open'=>true,
+                  'rules'=>[
+                      'type'=>'array',
+                      'required'=>false,
+                      'message'=>'请选择创建时间！'
+                  ],
+                  'backend'=>[
+                    'type'=>'daterange',
+                  ]
+              ], 
             ]
         ];
            
     }
 
-    protected function initBackendFieldsOptions(){
 
-    }
 
     public function detail($pk){
 
@@ -213,24 +257,30 @@ class Manager extends HyList
         ];
     }
 
+    public function initSelectOptions(){
+      $role_id = Db::table(DTP.'frame_role')->where(['status'=>1])->column("id,name");
+
+      return [
+        'role_id'=>$role_id,
+        'gender'=>[1=>'男',2=>'女']
+      ];
+    }
+
     /**
      * [getGenderAttr 支持ThinkPHP5的获取器,支持字段定义别名的写法，但要转成驼峰法]
      * @param  [type] $value [description]
      * @return [type]        [description]
      */
-    protected function getUserGenderAttr($value,$data){
-        // dump($value);
-        switch($value){
-            case 1: $gender = '男';break;
-            case 2: $gender = '女';break;
-            default: $gender = '未定义';break;
-        }
-        return $gender;
-    }
+    protected function getRoleIdAttr($value,$data){
+        
+        $roleIds = explode(',',$value);
 
-    protected function callback_setUserName($value){
-        return strtoupper($value);
-    }   
+        $data = Db::table("hy_frame_role")
+            ->where(['id'=>['in',$roleIds],'status'=>1])
+            ->column("id,name,description");
+
+        return $data;
+    }
 
     /*protected function getCreateTimeAttr($value){
         return strtotime($value);
@@ -243,6 +293,10 @@ class Manager extends HyList
 
     protected function callback_pwdEncrypt($value){
         return pwdEncrypt($value);
+    }
+
+    protected function callback_setVal($value){
+        return 'set_'.$value;
     }
 
 

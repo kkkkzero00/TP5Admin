@@ -183,11 +183,7 @@ class User extends HyList
                   'open'=>true,
                   'rules'=>['type'=>'number']
                 ], 
-                'type'=>'select',
-                'options'=>[
-                    ['id'=>1,'name'=>'男'],
-                    ['id'=>2,'name'=>'女'],
-                ]
+                'type'=>'select'
             ],
 
             [

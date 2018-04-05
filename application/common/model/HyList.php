@@ -40,6 +40,9 @@ class HyList extends HyBase
 
     //验证器配置项
     protected $validateOptions = [];
+
+    /*选择列表数据初始化*/
+    protected $selectOptions = [];
     //标题和副标题
     protected $infoOptions = [
         'title' => '',
@@ -137,6 +140,7 @@ class HyList extends HyBase
         $this->setPageOptions($this->initPageOptions());
         $this->setFieldsOptions($this->initFieldsOptions());
         $this->setValidateOptions($this->initValidateOptions());
+        $this->setSelectOptions($this->initSelectOptions());
         $this->setFieldsAliasMap();
 
         // if($this->pageOptions['tablesWrite']===true)
@@ -175,6 +179,12 @@ class HyList extends HyBase
     public function setValidateOptions($option){
         if(is_array($option)){  
             $this->validateOptions = array_merge($this->validateOptions,$option);
+        }
+    }
+
+    public function setSelectOptions($option){
+        if(is_array($option)){  
+            $this->selectOptions = array_merge($this->selectOptions,$option);
         }
     }
 
@@ -607,7 +617,16 @@ class HyList extends HyBase
         $count = $this->count((isset($alias)?$alias.'.':'').$this->getPk())?:0;
 
 
-        // dump($data);
+        // var_dump($this);
+        if(count($this->selectOptions)!=0){
+
+            foreach ($this->fieldsOptions as $k => $v) {
+                if(isset($v['type']) && ($v['type'] == 'select' || $v['type'] == 'multiselect') && isset($this->selectOptions[$v['name']])){
+
+                    $this->fieldsOptions[$k]['options'] = $this->selectOptions[$v['name']];
+                }
+            }
+        }
     
         $json = [
             $dataKey=>$data,
@@ -938,18 +957,12 @@ class HyList extends HyBase
         $model = Loader::model($class);
         // dump($theModel);
         $data = $req;
-        // var_dump($data);
-        // $data = [
-        //     'username'=>'SZA',
-        //     'user_gender'=>'114',
-        //     'email'=>'347756896@qq.com',
-        //     'article_title'=>'love galore'
-        // ];
 
-        $model->fieldsTypeDealing($type,$data);
+        $data = $model->fieldsTypeDealing($type,$data);
 
         // var_dump($data);
         $valide = $model->fieldsValidate($data);
+
         if($valide['status']===false){ 
             // var_dump($valide);
             return $valide;
@@ -1094,47 +1107,7 @@ class HyList extends HyBase
         }   
     }
 
-    /**
-     * [fieldsValidate 使用TP5自带验证器进行验证]
-     * @param  [type] $data [description]
-     * @return [type]       [description]
-     */
-    protected function fieldsValidate($data){
-
-
-        $rules = $msgs = [];
-        // dump($data);
-        $data_key = array_keys($data);
-
-        foreach ($this->fieldsOptions as $k => $v) {
-            // var_dump($v['name']);
-            if(!in_array($v['name'],$data_key)||empty($v['form'])||empty($v['form']['validate'])) continue;
-
-            //进行xss过滤
-            if($v['type']=='text')
-                $data[$k] = htmlspecialchars($data[$k],ENT_QUOTES);
-            elseif($v['type']=='textarea')
-                $data[$v['name']] = remove_xss($data[$v['name']]);
-        }
-
-
-        if(!isset($this->validateOptions['rule']) || !isset($this->validateOptions['rule'])){
-            return ['status'=>true];
-        }
-
-        $validate = new Validate($this->validateOptions['rule'],$this->validateOptions['msg']);
-
-        $result = $validate->check($data);
-        
-        if(!$result){
-            return ['status'=>false,'success'=>false,'message'=>$validate->getError(),'code'=>500];
-        }
-       
-        
-
-        return ['status'=>true];
-    }
-
+    
 
     /**
      * [fieldsTypeDealing 数据类型预处理]
@@ -1162,14 +1135,68 @@ class HyList extends HyBase
                     continue;
 
                 }
-
-            
+    
         }
+
+        $data_key = array_keys($data);
+
+        foreach ($this->fieldOptionsMap as $k => &$v) {
+
+            if(!in_array($k,$data_key)&&(!empty($v['form'])||!empty($v['form']['validate']))) continue;
+            
+            if(!isset($v['type'])) $v['type'] = 'text';
+
+            //进行xss过滤
+            switch ($v['type']) {
+                case 'text':
+                    $data[$k] = htmlspecialchars($data[$k],ENT_QUOTES);
+                    break;
+                case 'textarea':
+                    $data[$k] = remove_xss($data[$k]);
+                    break;
+                case 'select':
+                    $data[$k] = intval($data[$k]);
+                    break;
+                case 'multiselect':
+                    $data[$k] = implode(",",$data[$k]);
+            }
+        }
+
+        return $data;
+
     }
+
+    /**
+     * [fieldsValidate 使用TP5自带验证器进行验证]
+     * @param  [type] $data [description]
+     * @return [type]       [description]
+     */
+    protected function fieldsValidate(&$data){
+
+
+        $rules = $msgs = [];
+
+        if(!isset($this->validateOptions['rule']) || !isset($this->validateOptions['rule'])){
+            return ['status'=>true];
+        }
+
+        $validate = new Validate($this->validateOptions['rule'],$this->validateOptions['msg']);
+
+        $result = $validate->check($data);
+        
+        if(!$result){
+            return ['status'=>false,'success'=>false,'message'=>$validate->getError(),'code'=>500];
+        }
+       
+        
+
+        return ['status'=>true];
+    }
+
     
     protected function initCallback(&$data){
         // var_dump($data);
-        foreach ($this->fieldsOptions as $k => $v) {
+        foreach ($this->fieldOptionsMap as $k => $v) {
             // if($v['type'] === 'file'){
             //     if(!isset($v['form']['file'])){
             //         $v['form']['file'] = array(
@@ -1182,6 +1209,7 @@ class HyList extends HyBase
             //     continue;
             // }
             
+            if(!isset($data[$v['name']])) continue;
 
             $cb = isset($v['form']['callback'])?$v['form']['callback']:null;
 
@@ -1189,7 +1217,7 @@ class HyList extends HyBase
             if(is_null($cb)) continue;
 
 
-            $data[$v['name']] = $this->callbackHandler($cb,$data[$v['name']],$data);
+            $data[$k] = $this->callbackHandler($cb,$data[$k],$data);
         }
 
     }
@@ -1201,10 +1229,10 @@ class HyList extends HyBase
      * @return [type]        [description]
      */
     private function autoFill($type,&$data){
-        $fieldsOptions = $this->fieldsOptions;
+        $fieldOptionsMap = $this->fieldOptionsMap;
         // var_dump($type);
         // var_dump($data);
-        foreach ($fieldsOptions as $k => $v) {
+        foreach ($fieldOptionsMap as $k => $v) {
             if(!isset($v['form']) || !isset($v['form']['fill']) || !is_array($v['form']['fill']) || !isset($v['form']['fill']['type'])) continue;
             
             $fill = $v['form']['fill'];
@@ -1220,9 +1248,9 @@ class HyList extends HyBase
             $initVal = array_shift($cbArr);
             // var_dump($v['name']);
             
-            $data[$v['name']] = $this->callbackHandler($cb,$initVal);
+            $data[$k] = $this->callbackHandler($cb,$initVal);
 
-            if($data[$v['name']]===false) unset($data[$v['name']]);
+            if($data[$k]===false) unset($data[$k]);
 
                
         }

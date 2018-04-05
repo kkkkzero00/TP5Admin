@@ -75,21 +75,6 @@ class ListManage extends Base
     }
 
     /**
-     * 显示编辑资源表单页. 获取某个数据的值进行编辑
-     *
-     * @param  int  $id
-     * @return \think\Response
-     */
-    public function edit($id)
-    {
-
-        $json = $this->resJson;
-        // $this->model->ajax("edit",$json,null,$id);
-
-        return json($json);
-    }
-
-    /**
      * 保存更新的资源 更新某个数据的值
      *
      * @param  \think\Request  $request
@@ -99,6 +84,7 @@ class ListManage extends Base
     public function update($id)
     {
         $request = Request::instance()->put();
+        // var_dump($request);
         
         $json = $this->resJson;
         $this->model->ajax("update",$json,$request);
