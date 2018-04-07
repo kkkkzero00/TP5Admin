@@ -64,8 +64,8 @@ class HyAccount extends Model
 
         //从后台取出来的密码进行解密
         $pwdsha1 = aes_decrypt($userInfo['password'],$privateKey);
-        var_dump($pwdsha1);
-        var_dump($password);
+        // var_dump($pwdsha1);
+        // var_dump($password);
 
         if($pwdsha1!=$password){
             $this->error = '密码错误';

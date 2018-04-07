@@ -47,6 +47,7 @@ class Account extends Base
           $json['message'] = $userModel->getError();
           $json['code'] = 400;
           $json['status'] = false;
+          $json['success'] = false;
 
           return json($json);
       }
@@ -55,8 +56,8 @@ class Account extends Base
       $json['message'] = '正进行登录授权。。。';
       $json['code'] = 200;
       $json['status']  = true;
-      // var_dump($json);
-      // print_r($json);
+      $json['success']  = true;
+
       return json($json);
     }
 
@@ -69,7 +70,9 @@ class Account extends Base
 
       // var_dump($data);
       $userModel = new HyAccount();
-     
+      
+      // var_dump($token);
+
       if($token){
           $res = $userModel->getUserInfo($token->id);
 
@@ -77,6 +80,7 @@ class Account extends Base
               $json['message'] = $userModel->getError();
               $json['code'] = 500;
               $json['status'] = false;
+              $json['success'] = false;
 
               return json($json);
           }
@@ -84,6 +88,7 @@ class Account extends Base
           $json['message'] = '登陆成功，请耐心等待数据返回！';
           $json['code'] = 200;
           $json['status']  = true;
+          $json['success'] = true;
           $json['data'] = $res;
 
           return json($json);
@@ -91,6 +96,7 @@ class Account extends Base
         $json['message'] = "该用户还未登录，请重新登录！";
         $json['code'] = 500;
         $json['status'] = false;
+        $json['success'] = false;
 
         return json($json);
       }

@@ -43,11 +43,9 @@ class Manager extends HyList
      */
     protected function initSqlOptions(){
         return [
-            'alias' =>  'm',
-    
             /*传参形式支持ThinkPHP5的传参形式*/
             'where' =>  [
-                'm.status'   =>   array('eq',1),
+                'status'   =>   array('eq',1),
                 // 'a.user_id'=>array('lt',3)
             ],
             // 'whereOr'=>array(),
@@ -102,6 +100,12 @@ class Manager extends HyList
                 ],
                 'form'=>[
                    'type'=>['add'],
+                   'rules'=>[
+                        'required'=> true,
+                        'pattern'=>'^[0-9]+$',
+                        'message' => "账号只能是数字！"
+                    ],
+
                    //前台的表单验证规则
 
                 ],

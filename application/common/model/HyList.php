@@ -134,14 +134,17 @@ class HyList extends HyBase
      * @return [type] [description]
      */
     protected function _after_initialize(){
-        $this->setInfoOptions($this->initInfoOptions());
+        
         $this->setSqlType($this->initSqlType());
         $this->setSqlOptions($this->initSqlOptions());
         $this->setPageOptions($this->initPageOptions());
         $this->setFieldsOptions($this->initFieldsOptions());
-        $this->setValidateOptions($this->initValidateOptions());
-        $this->setSelectOptions($this->initSelectOptions());
         $this->setFieldsAliasMap();
+
+
+        if(method_exists($this,'initInfoOptions')) $this->setInfoOptions($this->initInfoOptions());
+        if(method_exists($this,'initValidateOptions')) $this->setValidateOptions($this->initValidateOptions());
+        if(method_exists($this,'initSelectOptions')) $this->setSelectOptions($this->initSelectOptions());
 
         // if($this->pageOptions['tablesWrite']===true)
         //  $this->setRelativeTable();
@@ -185,6 +188,16 @@ class HyList extends HyBase
     public function setSelectOptions($option){
         if(is_array($option)){  
             $this->selectOptions = array_merge($this->selectOptions,$option);
+        }
+
+        if(count($this->selectOptions)!=0){
+
+            foreach ($this->fieldsOptions as $k => $v) {
+                if(isset($v['type']) && ($v['type'] == 'select' || $v['type'] == 'multiselect') && isset($this->selectOptions[$v['name']])){
+
+                    $this->fieldsOptions[$k]['options'] = $this->selectOptions[$v['name']];
+                }
+            }
         }
     }
 
@@ -261,16 +274,61 @@ class HyList extends HyBase
      * @return [type]        [description]
      */
     public function ajax_list(&$json,$id=null){
+
+        $dataKey = $this->resJsonKeys['data'];
+        $totalKey = $this->resJsonKeys['total'];
+        $infoKey = $this->resJsonKeys['info'];
+        $successKey = $this->resJsonKeys['success'];
+        $codeKey = $this->resJsonKeys['code'];
+        $statusKey = $this->resJsonKeys['status'];
+        
+        if(!Session::get('form_token')){
+            Session::set('form_token',sha1(Config::get("crypto.CRYPT_KEY_ACT")));
+        }
+
+        if(!is_null($id)){ 
+            if(method_exists($this,'detail'))
+                $json['config'] = $this->detail($id);
+            else
+                $json['config'] = null;
+        }else{
+            $json['token'] = Session::get('form_token');
+            $json['config'] = $this->fieldsOptions;
+        }
+
         $type = strtolower($this->sqlType);
+
         switch ($type) {
             case 'custom':
-                $json = $this->getCustom($id);
+                $res = $this->getCustom($id);
                 break;
             case 'getdtdata':
             default:
-                $json = $this->getDtData($id);
+                $res = $this->getDtData($id);
+
+                if(!$res['status']){
+                    $json[$dataKey] = null;
+                    $json[$totalKey] = 0;
+                    $json[$infoKey] = $res['info'];
+                    $json[$successKey] = false;
+                    $json[$codeKey]  = 500;
+                    $json[$statusKey] =false;
+ 
+                }else{
+                    $json[$dataKey] = $res['data'];
+                    $json[$totalKey] = $res['total'];
+                    $json[$infoKey] = $res['info'];
+                    $json[$successKey] = true;
+                    $json[$statusKey] = true;
+                    $json[$codeKey] = 200;
+                }
                 break;
         }
+
+        if(method_exists($this,'beforeSend')){
+            $json[$dataKey] = $this->beforeSend($json[$dataKey]);
+        }
+
         
     }
 
@@ -469,7 +527,9 @@ class HyList extends HyBase
         $pageKeys = Config::get('common.pageKeys');
         
         //获取alias
-        if($alias = $this->sqlOptions['alias']?:'') $this->alias($alias);
+        if($alias = $this->sqlOptions['alias']?:false) $this->alias($alias);
+        $aliasName = $alias;
+        $alias = $alias?($alias.'.'):'';
 
         // 先判断是否存在连表
         if($associate = $this->sqlOptions['associate']?:null&&is_array($associate)){
@@ -478,7 +538,7 @@ class HyList extends HyBase
             foreach ($associate as $k => $v) {
                 // preg_match('/([\w\.\-\(\)]+)\s*(AS|as)*\s*([\w\-]*)/i', $v['table'],$m);
 
-                array_push($join,array(DTP.$v['table'].' '.$v['alias'],trim($alias).'.'.trim($v['key']).' = '.trim(isset($v['alias'])?$v['alias']:'').'.'.trim($v['foreignKey']).(isset($v['limit'])?' AND '.$v['limit']:''),isset($v['type'])?strtoupper($v['type']):'INNER'));
+                array_push($join,array(DTP.$v['table'].' '.$v['alias'],$alias.trim($v['key']).' = '.trim(isset($v['alias'])?$v['alias']:'').'.'.trim($v['foreignKey']).(isset($v['limit'])?' AND '.$v['limit']:''),isset($v['type'])?strtoupper($v['type']):'INNER'));
             }
             $this->join($join);
             // dump($join);
@@ -509,7 +569,7 @@ class HyList extends HyBase
             $limit = $pageSize;
         }
 
-        $field .= ','.$alias.'.'.$this->getPk();
+        $field .= ','.$alias.$this->getPk();
 
         $this->field($field);
         
@@ -522,7 +582,7 @@ class HyList extends HyBase
             //如果只是查询一条信息
             if(!is_null($id))
             {
-                $where[(isset($alias)?$alias.".":"").$this->getPk()] = $id;
+                $where[$alias.$this->getPk()] = $id;
                 $limit = 1;  
             }
             else
@@ -551,47 +611,24 @@ class HyList extends HyBase
         // var_dump($where);
 
         $obj = $this
-                ->order((is_null($alias)?'':$alias).'.'.$this->pageOptions['order'])
+                ->order($alias.$this->pageOptions['order'])
                 ->limit($limit)
                 ->select();
 
-         // dump($obj);
-        $dataKey = $this->resJsonKeys['data'];
-        $totalKey = $this->resJsonKeys['total'];
-        $infoKey = $this->resJsonKeys['info'];
-        $successKey = $this->resJsonKeys['success'];
-        $codeKey = $this->resJsonKeys['code'];
-        $statusKey = $this->resJsonKeys['status'];
-
-
-        if(!Session::get('form_token')){
-            Session::set('form_token',sha1(Config::get("crypto.CRYPT_KEY_ACT")));
-        }
 
         if(empty($obj)){
-            return array(
-                $dataKey => null,
-                $totalKey => 0,
-                $infoKey => '没有符合要求的信息！',
-                $successKey=>false,
-                $codeKey  => 500,
-                $statusKey=>false,
-                // 'token'=>Session::get('form_token'),
-                // 'config'=>$this->fieldsOptions
-            );
+            return [
+                'info' => '没有符合要求的信息！',
+                'status'=>false
+            ];
         }
 
         if(!is_null($id)){
-            $detailConfig = $this->detail($id);
-
             return [
-                $dataKey=>$obj[0],
-                $totalKey=>1,
-                'config'=>$detailConfig,
-                $infoKey=> '获取数据成功',
-                $successKey=>true,
-                $statusKey=>true,
-                $codeKey => 200
+                'data'=>$obj[0],
+                'total'=>1,
+                'info'=> '获取数据成功',
+                'status'=>true,
             ];
 
         }
@@ -609,34 +646,18 @@ class HyList extends HyBase
         // var_dump($cry);
         // var_dump(act_decrypt($cry));
 
-        if(isset($alias)) $this->alias($alias);
+        if($aliasName) $this->alias($aliasName);
         if(isset($where)) $this->where($where);
         if(isset($whereOr)) $this->whereOr($whereOr);
         if(isset($join)) $this->join($join);
 
-        $count = $this->count((isset($alias)?$alias.'.':'').$this->getPk())?:0;
-
-
-        // var_dump($this);
-        if(count($this->selectOptions)!=0){
-
-            foreach ($this->fieldsOptions as $k => $v) {
-                if(isset($v['type']) && ($v['type'] == 'select' || $v['type'] == 'multiselect') && isset($this->selectOptions[$v['name']])){
-
-                    $this->fieldsOptions[$k]['options'] = $this->selectOptions[$v['name']];
-                }
-            }
-        }
+        $count = $this->count($alias.$this->getPk())?:0;
     
         $json = [
-            $dataKey=>$data,
-            'config'=>$this->fieldsOptions,
-            'token'=>Session::get('form_token'),
-            $totalKey=>$count,
-            $infoKey=> '获取数据成功',
-            $successKey=>true,
-            $statusKey=>true,
-            $codeKey => 200
+            'data'=>$data,
+            'total'=>$count,
+            'info'=> '获取数据成功',
+            'status'=>true,
         ];
 
         return $json;

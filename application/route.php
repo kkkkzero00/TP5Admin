@@ -45,26 +45,28 @@ foreach ($routeRules as $k => $v) {
         
    }
    
-   $source  = (is_null($v['action'])||empty($v['action']))?$v['source']:$v['source'].'/'.$v['action'];
+   $source  = trim((is_null($v['action'])||empty($v['action']))?$v['source']:$v['source'].'/'.$v['action']);
+
+   $distance = trim($v['distance']);
 
    switch ($v['method']) {
         case 1:
-           $rules[0][$source] = empty($params)?$v['distance']:[$v['distance'],$params];
+           $rules[0][$source] = empty($params)?$distance:[$distance,$params];
            break;
         case 2:
-           $rules[1][$source] = empty($params)?$v['distance']:[$v['distance'],$params];
+           $rules[1][$source] = empty($params)?$distance:[$distance,$params];
            break;
         case 3:
-           $rules[2][$source] = empty($params)?$v['distance']:[$v['distance'],$params];
+           $rules[2][$source] = empty($params)?$distance:[$distance,$params];
            break;
         case 4:
-           $rules[3][$source] = empty($params)?$v['distance']:[$v['distance'],$params];
+           $rules[3][$source] = empty($params)?$distance:[$distance,$params];
            break;
 
    }
 }
 
-// print_r($rules);
+// var_dump($rules);
 // Route::rule('xxx','xxx/delete','OPTIONS'); 
 
 // $ruleOptions = [];

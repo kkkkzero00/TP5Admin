@@ -309,8 +309,11 @@ class User extends HyList
         ];
     }
 
-    protected function initBackendFieldsOptions(){
+    public function initSelectOptions(){
 
+      return [
+        'gender'=>[1=>'男',2=>'女']
+      ];
     }
 
     public function detail($pk){
