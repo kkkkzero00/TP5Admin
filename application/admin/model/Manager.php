@@ -208,7 +208,10 @@ class Manager extends HyList
               ],
               'search'=>[
                 'open'=>true,
-                'rules'=>['type'=>'array']
+                'rules'=>['type'=>'array'],
+                'backend'=>[
+                    'type'=>'multiselect',
+                 ]
               ], 
               'type'=>'multiselect',
             ],

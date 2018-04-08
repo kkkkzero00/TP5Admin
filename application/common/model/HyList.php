@@ -387,7 +387,7 @@ class HyList extends HyBase
      * @return [NULL]         
      */
     protected function searchMap($search){
-
+        // var_dump($search);
         $searchArr = [];
 
         foreach($search as $k => $v){
@@ -395,11 +395,8 @@ class HyList extends HyBase
             $isConfig = true;
             $fieldOption = null;
 
-            // var_dump($k);
+ 
             foreach ($this->fieldsOptions as $k1 => $v1) {
-                
-                // var_dump($v1['name']);
-
                 if($k == $v1['name']){
                     if(
                         !isset($v1['search']) && 
@@ -424,7 +421,7 @@ class HyList extends HyBase
             $searchOptions = isset($fieldOption['search']['backend'])?$fieldOption['search']['backend']:null;
 
             $type = $searchOptions?(isset($searchOptions['type'])?$searchOptions['type']:'like'):'equal';
-            // var_dump($type);
+
             
 
             $table = isset($fieldOption['table'])?DTP.$fieldOption['table']:null;
@@ -456,16 +453,15 @@ class HyList extends HyBase
                     $v[1] = strtotime($v[1]);
 
                     $searchArr[$temp] = ['between',[$v[0],$v[1]]];
-                    /*   
-                        1486474923  2017-2-7
-    
-                        1486396800
-
-                        1486561323  2017-2-8
-                     */
                     break;
                 case 'like':
                     $searchArr[$temp] = ['like','%'.$v.'%']; break;
+                case 'multiselect':
+                    $multiselect = explode(",",$v);
+                    sort($multiselect);
+                    $multiselect = implode(",",$multiselect);
+                    
+                    $searchArr[$temp] = ['like','%'.$multiselect.'%']; break;
                 case 'select':
                 case 'equal':
                 default:
@@ -473,7 +469,6 @@ class HyList extends HyBase
 
             }
         }
-        // dump($stringSearch);
         return $searchArr;   
     }
 
@@ -523,7 +518,6 @@ class HyList extends HyBase
      
         $get = Request::instance()->get();
 
-        // var_dump($_GET);
         $pageKeys = Config::get('common.pageKeys');
         
         //获取alias
@@ -572,36 +566,34 @@ class HyList extends HyBase
         $field .= ','.$alias.$this->getPk();
 
         $this->field($field);
-        
+
         //获取where
-        if($where = $this->sqlOptions['where']?:null&&is_array($where)){
-            //扩展搜索框时要在这里加查询条件
-            
-            $search = array();
+        $where = $this->sqlOptions['where']?:[];
 
-            //如果只是查询一条信息
-            if(!is_null($id))
-            {
-                $where[$alias.$this->getPk()] = $id;
-                $limit = 1;  
-            }
-            else
-            {
-                $searchArr = [];
-                //判断是否为搜素功能
-                if(method_exists($this,'searchMap') && count($get)!=0){
-                    $searchArr = $this->searchMap($get);
-                } 
-                
-                // var_dump($get);
-                $where = array_merge($where, $searchArr);
-
-            }
-            
-            
-            $this->where($where);
-            // dump($where);
+        //如果只是查询一条信息
+        if(!is_null($id))
+        {
+            $where[$alias.$this->getPk()] = $id;
+            $limit = 1;  
         }
+        else
+        {
+            $searchArr = [];
+            //判断是否为搜素功能
+            if(method_exists($this,'searchMap') && count($get)!=0){
+                $searchArr = $this->searchMap($get);
+            } 
+            // var_dump($get);
+            
+            // var_dump($get);
+            $where = array_merge($where, $searchArr);
+
+        }
+        
+        
+        $this->where($where);
+        // dump($where);
+        
 
         
         if($whereOr = $this->sqlOptions['whereOr']?:null){
@@ -1179,6 +1171,7 @@ class HyList extends HyBase
                     $data[$k] = intval($data[$k]);
                     break;
                 case 'multiselect':
+                    sort($data[$k]);
                     $data[$k] = implode(",",$data[$k]);
             }
         }
