@@ -10,7 +10,7 @@ Target Server Type    : MYSQL
 Target Server Version : 50719
 File Encoding         : 65001
 
-Date: 2018-04-04 17:16:15
+Date: 2018-04-08 16:02:47
 */
 
 SET FOREIGN_KEY_CHECKS=0;
@@ -82,38 +82,75 @@ INSERT INTO `hy_card` VALUES ('5', 'Katy', '1');
 -- ----------------------------
 DROP TABLE IF EXISTS `hy_frame_access`;
 CREATE TABLE `hy_frame_access` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `role_id` int(11) DEFAULT NULL,
-  `rule_id` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=35 DEFAULT CHARSET=utf8;
+  `role_id` int(11) NOT NULL,
+  `rule_id` int(11) NOT NULL,
+  PRIMARY KEY (`role_id`,`rule_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- ----------------------------
 -- Records of hy_frame_access
 -- ----------------------------
-INSERT INTO `hy_frame_access` VALUES ('6', '2', '2000');
-INSERT INTO `hy_frame_access` VALUES ('7', '2', '2100');
-INSERT INTO `hy_frame_access` VALUES ('8', '2', '3000');
-INSERT INTO `hy_frame_access` VALUES ('9', '2', '3101');
-INSERT INTO `hy_frame_access` VALUES ('10', '2', '3102');
-INSERT INTO `hy_frame_access` VALUES ('11', '2', '3103');
-INSERT INTO `hy_frame_access` VALUES ('12', '2', '3104');
-INSERT INTO `hy_frame_access` VALUES ('13', '2', '3105');
-INSERT INTO `hy_frame_access` VALUES ('14', '2', '3106');
-INSERT INTO `hy_frame_access` VALUES ('15', '3', '4000');
-INSERT INTO `hy_frame_access` VALUES ('16', '3', '5000');
-INSERT INTO `hy_frame_access` VALUES ('17', '3', '6000');
-INSERT INTO `hy_frame_access` VALUES ('18', '3', '6100');
-INSERT INTO `hy_frame_access` VALUES ('19', '3', '6200');
-INSERT INTO `hy_frame_access` VALUES ('20', '3', '6300');
-INSERT INTO `hy_frame_access` VALUES ('21', '3', '6400');
-INSERT INTO `hy_frame_access` VALUES ('26', '2', '4000');
-INSERT INTO `hy_frame_access` VALUES ('27', '2', '5000');
-INSERT INTO `hy_frame_access` VALUES ('28', '2', '6000');
-INSERT INTO `hy_frame_access` VALUES ('29', '2', '6100');
-INSERT INTO `hy_frame_access` VALUES ('30', '2', '6200');
-INSERT INTO `hy_frame_access` VALUES ('31', '2', '6300');
-INSERT INTO `hy_frame_access` VALUES ('32', '2', '6400');
+INSERT INTO `hy_frame_access` VALUES ('2', '2000');
+INSERT INTO `hy_frame_access` VALUES ('2', '2100');
+INSERT INTO `hy_frame_access` VALUES ('2', '3000');
+INSERT INTO `hy_frame_access` VALUES ('2', '3001');
+INSERT INTO `hy_frame_access` VALUES ('2', '3101');
+INSERT INTO `hy_frame_access` VALUES ('2', '3102');
+INSERT INTO `hy_frame_access` VALUES ('2', '3104');
+INSERT INTO `hy_frame_access` VALUES ('2', '3105');
+INSERT INTO `hy_frame_access` VALUES ('2', '3106');
+INSERT INTO `hy_frame_access` VALUES ('2', '5000');
+INSERT INTO `hy_frame_access` VALUES ('2', '6000');
+INSERT INTO `hy_frame_access` VALUES ('2', '6100');
+INSERT INTO `hy_frame_access` VALUES ('2', '6200');
+INSERT INTO `hy_frame_access` VALUES ('2', '7000');
+INSERT INTO `hy_frame_access` VALUES ('2', '7100');
+INSERT INTO `hy_frame_access` VALUES ('3', '3000');
+INSERT INTO `hy_frame_access` VALUES ('3', '3001');
+INSERT INTO `hy_frame_access` VALUES ('3', '3101');
+INSERT INTO `hy_frame_access` VALUES ('3', '3102');
+INSERT INTO `hy_frame_access` VALUES ('3', '3104');
+INSERT INTO `hy_frame_access` VALUES ('3', '3105');
+INSERT INTO `hy_frame_access` VALUES ('3', '3106');
+INSERT INTO `hy_frame_access` VALUES ('3', '5000');
+INSERT INTO `hy_frame_access` VALUES ('3', '6000');
+INSERT INTO `hy_frame_access` VALUES ('3', '6100');
+INSERT INTO `hy_frame_access` VALUES ('3', '6200');
+INSERT INTO `hy_frame_access` VALUES ('3', '6300');
+INSERT INTO `hy_frame_access` VALUES ('3', '6400');
+INSERT INTO `hy_frame_access` VALUES ('3', '7000');
+INSERT INTO `hy_frame_access` VALUES ('3', '7100');
+INSERT INTO `hy_frame_access` VALUES ('3', '7200');
+INSERT INTO `hy_frame_access` VALUES ('3', '7300');
+INSERT INTO `hy_frame_access` VALUES ('4', '3000');
+INSERT INTO `hy_frame_access` VALUES ('4', '3001');
+INSERT INTO `hy_frame_access` VALUES ('4', '3101');
+INSERT INTO `hy_frame_access` VALUES ('4', '3102');
+INSERT INTO `hy_frame_access` VALUES ('4', '3104');
+INSERT INTO `hy_frame_access` VALUES ('4', '6000');
+INSERT INTO `hy_frame_access` VALUES ('4', '6400');
+INSERT INTO `hy_frame_access` VALUES ('4', '7000');
+INSERT INTO `hy_frame_access` VALUES ('4', '7100');
+INSERT INTO `hy_frame_access` VALUES ('4', '7200');
+INSERT INTO `hy_frame_access` VALUES ('4', '7300');
+INSERT INTO `hy_frame_access` VALUES ('9', '2000');
+INSERT INTO `hy_frame_access` VALUES ('9', '2100');
+INSERT INTO `hy_frame_access` VALUES ('9', '3000');
+INSERT INTO `hy_frame_access` VALUES ('9', '3001');
+INSERT INTO `hy_frame_access` VALUES ('9', '3101');
+INSERT INTO `hy_frame_access` VALUES ('9', '3102');
+INSERT INTO `hy_frame_access` VALUES ('9', '3104');
+INSERT INTO `hy_frame_access` VALUES ('9', '3105');
+INSERT INTO `hy_frame_access` VALUES ('9', '4000');
+INSERT INTO `hy_frame_access` VALUES ('9', '4200');
+INSERT INTO `hy_frame_access` VALUES ('9', '4204');
+INSERT INTO `hy_frame_access` VALUES ('9', '4205');
+INSERT INTO `hy_frame_access` VALUES ('9', '6000');
+INSERT INTO `hy_frame_access` VALUES ('9', '6100');
+INSERT INTO `hy_frame_access` VALUES ('9', '6200');
+INSERT INTO `hy_frame_access` VALUES ('9', '7000');
+INSERT INTO `hy_frame_access` VALUES ('9', '7100');
+INSERT INTO `hy_frame_access` VALUES ('9', '7200');
 
 -- ----------------------------
 -- Table structure for hy_frame_file
@@ -151,6 +188,7 @@ CREATE TABLE `hy_frame_manager` (
   `gender` int(11) DEFAULT '1',
   `login_last_time` int(11) DEFAULT NULL,
   `session_id` int(11) DEFAULT NULL,
+  `create_time` int(11) DEFAULT NULL,
   `status` int(11) DEFAULT '1',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=456457 DEFAULT CHARSET=utf8;
@@ -158,8 +196,11 @@ CREATE TABLE `hy_frame_manager` (
 -- ----------------------------
 -- Records of hy_frame_manager
 -- ----------------------------
-INSERT INTO `hy_frame_manager` VALUES ('123123', 'admin', 'admin', '1', '1', null, null, '1');
-INSERT INTO `hy_frame_manager` VALUES ('456456', 'guest', 'guest', '2,3', '1', null, null, '1');
+INSERT INTO `hy_frame_manager` VALUES ('565', 'LL', 'ZFsQqKPRl8fqRJ1petQQoll37vVxHKWjGdl0/+lieyJuZ+uqCrVjS4aiS57kEEuaTfJII+P2QsoimPLWA2mFGkk+c4DPIOMfbUCZGzrMO7yQYn0iCe+BRw/jJ/+MIyV2', '3,4', '1', null, null, '1523162538', '1');
+INSERT INTO `hy_frame_manager` VALUES ('67890', 'tt', 'Kt1/TZrGyIO9WYgZzxNzd6ujhwrdr1uH9f2NHinNclUiuP4QCn6di61vBBh6XXod8xXWn/GTuCgfZmm3CcZ7448jMNebVAy5gIVr9mf66DOyVRtmvLM0v4iO2hJyrzhJ', '2', '2', null, null, '1523161994', '1');
+INSERT INTO `hy_frame_manager` VALUES ('123123', 'admin', 'VfJUDOYipOLvjugt6DWXXzET3D2xqRYElVieeA13nanbqSOdpa1YaEfpkTsSP17eFslkmpk6i7bjz6qMNJMkgFkbanGjgmVLchRZv4VIVjLjZsGQZ75ZxwmrW1d3e7pc', '1', '1', null, null, '1522732631', '1');
+INSERT INTO `hy_frame_manager` VALUES ('333333', 'hjk', 'HbofKlRs9Wovm2PVIjEkiBLqR9xBE50tdWejQwtXs8TGvv/Uq7gCmShy82RwO9khvlhCkeoYrz5ZwuDjKn4LbIRGRmUxD3mMKM1fJJF0MWrwyBRqpnzLWsp+kh3i0FgW', '2,3,4', '1', null, null, '1523103110', '1');
+INSERT INTO `hy_frame_manager` VALUES ('456456', 'guest', '3qy/JVcBlHiSU4nBXG3XPlfH7BD0HhNY6Kt3s9vwe5/nSgUo/v5CCb1PS2dM0eUC/sefifzLXSCt4410tGhDTgnsZrAeBl4BuxY+AX+9vD5j5A1f0Vyqt+aXmeOk+0dI', '2,3', '2', null, null, '1522732631', '1');
 
 -- ----------------------------
 -- Table structure for hy_frame_role
@@ -171,15 +212,16 @@ CREATE TABLE `hy_frame_role` (
   `description` varchar(255) DEFAULT NULL,
   `status` int(11) DEFAULT '1',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8;
 
 -- ----------------------------
 -- Records of hy_frame_role
 -- ----------------------------
-INSERT INTO `hy_frame_role` VALUES ('1', '超级管理员', null, '1');
-INSERT INTO `hy_frame_role` VALUES ('2', '管理员', null, '1');
-INSERT INTO `hy_frame_role` VALUES ('3', '老师', null, '1');
-INSERT INTO `hy_frame_role` VALUES ('4', '学生', null, '1');
+INSERT INTO `hy_frame_role` VALUES ('1', '超级管理员', '最高权限管理员', '1');
+INSERT INTO `hy_frame_role` VALUES ('2', '管理员', '普通管管理员', '1');
+INSERT INTO `hy_frame_role` VALUES ('3', '老师', '这只是个老师', '1');
+INSERT INTO `hy_frame_role` VALUES ('4', '学生', '这只是个学生2333', '1');
+INSERT INTO `hy_frame_role` VALUES ('9', '教授', '这是教授', '0');
 
 -- ----------------------------
 -- Table structure for hy_frame_rule
@@ -206,18 +248,18 @@ CREATE TABLE `hy_frame_rule` (
   `ajax` int(10) DEFAULT '0' COMMENT '0为关闭，1为启动',
   `status` int(10) DEFAULT '1',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=100011 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=100017 DEFAULT CHARSET=utf8;
 
 -- ----------------------------
 -- Records of hy_frame_rule
 -- ----------------------------
-INSERT INTO `hy_frame_rule` VALUES ('1000', '0', '公共部分路由', null, null, '', null, '', null, null, null, '0', '0', null, null, '0', '0', '0', '1');
+INSERT INTO `hy_frame_rule` VALUES ('1000', '0', '公共部分路由', 'admin', null, '', null, '', null, null, null, '0', '0', null, null, '0', '0', '0', '1');
 INSERT INTO `hy_frame_rule` VALUES ('1020', '1000', '登录', 'admin', null, '', null, '', 'Login', null, 'admin/System.Account/login', '2', '0', null, null, '0', '0', '0', '1');
 INSERT INTO `hy_frame_rule` VALUES ('1021', '1020', '登录验证', 'admin', null, '', null, '', 'checkUserExist', null, 'admin/System.Account/checkUserExist', '2', '0', null, null, '0', '0', '0', '1');
 INSERT INTO `hy_frame_rule` VALUES ('1022', '1020', '用户认证', 'admin', null, '', null, '', 'userPermission', null, 'admin/System.Account/userPermission', '1', '0', null, null, '0', '0', '0', '1');
 INSERT INTO `hy_frame_rule` VALUES ('1023', '1020', '用户注销', 'admin', null, '', null, '', 'logout', null, 'admin/System.Account/logout', '1', '0', null, null, '0', '0', '0', '1');
 INSERT INTO `hy_frame_rule` VALUES ('1024', '1020', '验证menu路由', 'admin', null, '', null, '', 'checkAuthRoute', null, 'admin/System.Account/checkAuthRoute', '1', '0', null, null, '0', '0', '0', '1');
-INSERT INTO `hy_frame_rule` VALUES ('1025', '1020', '获取密钥', 'admin', null, '', null, '', 'getKeys', null, 'admin/System.Account/getKeys', '1', '0', null, null, '0', '0', '0', '1');
+INSERT INTO `hy_frame_rule` VALUES ('1025', '1020', '获取密钥', 'admin', null, '', null, '', 'getKeys', null, 'admin/System.Account/getPublickey', '1', '0', null, null, '0', '0', '0', '1');
 INSERT INTO `hy_frame_rule` VALUES ('2000', '0', '主页', 'nav', 'laptop', 'indexPage', '/indexPage', '2000', '', null, '', '0', '0', null, null, '0', '0', '0', '1');
 INSERT INTO `hy_frame_rule` VALUES ('2100', '2000', '获取主页信息', 'url', null, '', null, '2100-2000', null, null, null, '0', '0', null, null, '0', '0', '0', '1');
 INSERT INTO `hy_frame_rule` VALUES ('3000', '0', 'Users', 'nav', 'user', 'users', '/users', '3000', '', null, null, '0', '1', null, null, '0', '0', '0', '1');
@@ -232,9 +274,18 @@ INSERT INTO `hy_frame_rule` VALUES ('4100', '4000', '管理员管理', 'menu', '
 INSERT INTO `hy_frame_rule` VALUES ('4101', '4100', '列表', 'url', null, '', null, '', 'manager', 'lists', 'admin/System.Manager/lists', '1', '0', null, null, '0', '0', '0', '1');
 INSERT INTO `hy_frame_rule` VALUES ('4102', '4100', '详情', 'url', null, '', null, '', 'manager', ':id/read', 'admin/System.Manager/read', '1', '0', null, null, '0', '0', '0', '1');
 INSERT INTO `hy_frame_rule` VALUES ('4103', '4100', '新增', 'url', null, '', null, '', 'manager', null, 'admin/System.Manager/insert', '2', '0', null, null, '0', '0', '0', '1');
-INSERT INTO `hy_frame_rule` VALUES ('4104', '4100', '更新', 'url', null, '', null, '', 'manager', ':id/edit', 'admin/System.Manager/update', '3', '0', null, null, '0', '0', '0', '1');
+INSERT INTO `hy_frame_rule` VALUES ('4104', '4100', '更新', 'url', null, '', null, '', 'manager', ':id', 'admin/System.Manager/update', '3', '0', null, null, '0', '0', '0', '1');
 INSERT INTO `hy_frame_rule` VALUES ('4105', '4100', '删除', 'url', null, '', null, '', 'manager', null, 'admin/System.Manager/delete', '4', '0', null, null, '0', '0', '0', '1');
 INSERT INTO `hy_frame_rule` VALUES ('4120', '4100', '管理员详情', 'detail', 'lock', 'detail', '/manager/:id/detail', '4120-4100-4000', null, null, null, '0', '0', null, null, '0', '0', '0', '1');
+INSERT INTO `hy_frame_rule` VALUES ('4200', '4000', '角色权限管理', 'menu', 'user-add', '', '/role', '4200-4000', 'role', null, null, '0', '0', null, null, '0', '0', '0', '1');
+INSERT INTO `hy_frame_rule` VALUES ('4201', '4200', '列表', 'url', null, '', null, '', 'role', 'lists', 'admin/System.Role/lists', '1', '0', null, null, '0', '0', '0', '1');
+INSERT INTO `hy_frame_rule` VALUES ('4202', '4200', '详情', 'url', null, '', null, '', 'role', ':id/read', 'admin/System.Role/read', '1', '0', null, null, '0', '0', '0', '1');
+INSERT INTO `hy_frame_rule` VALUES ('4203', '4200', '新增', 'url', null, '', null, '', 'role', null, 'admin/System.Role/insert', '2', '0', null, null, '0', '0', '0', '1');
+INSERT INTO `hy_frame_rule` VALUES ('4204', '4200', '更新', 'url', null, '', null, '', 'role', ':id', 'admin/System.Role/update', '3', '0', null, null, '0', '0', '0', '1');
+INSERT INTO `hy_frame_rule` VALUES ('4205', '4200', '删除', 'url', null, '', null, '', 'role', null, 'admin/System.Role/delete', '4', '0', null, null, '0', '0', '0', '1');
+INSERT INTO `hy_frame_rule` VALUES ('4206', '4200', '获取权限', 'url', null, '', null, '', 'role/getAccess', '', 'admin/System.Role/getAccess', '1', '0', null, null, '0', '0', '0', '1');
+INSERT INTO `hy_frame_rule` VALUES ('4207', '4200', '授权处理', 'url', null, '', null, '', 'role/setAccess', ':id', 'admin/System.Role/setAccess', '2', '0', null, null, '0', '0', '0', '1');
+INSERT INTO `hy_frame_rule` VALUES ('4220', '4200', '角色权限管理详情', 'detail', 'lock', 'detail', '/role/:id/detail', '4220-4200-4000', null, null, null, '0', '0', null, null, '0', '0', '0', '1');
 INSERT INTO `hy_frame_rule` VALUES ('5000', '0', 'Request', 'nav', 'api', 'request', '/request', '5000', '', null, null, '0', '0', null, null, '0', '0', '0', '1');
 INSERT INTO `hy_frame_rule` VALUES ('6000', '0', 'UI Element', 'nav', 'camera-o', '', null, '6000', '', null, null, '0', '0', null, null, '0', '0', '0', '1');
 INSERT INTO `hy_frame_rule` VALUES ('6100', '6000', 'IconFont', 'menu', 'heart-o', 'iconfont', '/UIElement/iconfont', '6100-6000', '', null, null, '0', '0', null, null, '0', '0', '0', '1');
@@ -270,7 +321,7 @@ CREATE TABLE `hy_user` (
   `create_time` int(11) DEFAULT NULL,
   `age` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=288 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=294 DEFAULT CHARSET=utf8;
 
 -- ----------------------------
 -- Records of hy_user
@@ -325,10 +376,10 @@ INSERT INTO `hy_user` VALUES ('280', 'fg34_set', null, null, null, '15079026985'
 INSERT INTO `hy_user` VALUES ('281', 'fg34_set', null, null, null, '15079026985', '124345', '1', null, null, null, null, null, '1', null, null, '1522732482', '1');
 INSERT INTO `hy_user` VALUES ('282', 'fg34_set', null, null, null, '15079026985', '124345', '1', null, null, null, null, null, '1', null, null, '1522732508', '1');
 INSERT INTO `hy_user` VALUES ('283', 'fg34_set', null, null, null, '15079026985', '124345', '1', null, null, null, null, null, '1', null, null, '1522732631', '1');
-INSERT INTO `hy_user` VALUES ('284', 'fg34_set', null, null, null, '15079026985', '124345', '1', null, null, null, null, null, '1', null, null, '1522732632', '1');
-INSERT INTO `hy_user` VALUES ('285', 'fg34_set', null, null, null, '15079026985', '124345', '1', null, null, '347756896@qq.com', null, null, '1', null, null, '1522732733', '1');
-INSERT INTO `hy_user` VALUES ('286', 'hjk_set', null, null, null, '15079026985', '2343242', '1', null, null, '347756896@qq.com', null, null, '1', null, null, '1522814689', '23');
-INSERT INTO `hy_user` VALUES ('287', '213_set', null, null, null, '15079026985', 'rtrtrt', '1', null, null, '347756896@qq.com', null, null, '1', null, null, '1522817219', '12');
+INSERT INTO `hy_user` VALUES ('290', 'hjk24545', null, null, null, '15079026985', 'edfgf', '1', null, null, '347756896@qq.com', null, null, '1', null, null, '1522842700', '12');
+INSERT INTO `hy_user` VALUES ('291', 'paloma', null, null, null, '15079026985', '2efdfgd', '2', null, null, '347756896@qq.com', null, null, '1', null, null, '1522849865', '33');
+INSERT INTO `hy_user` VALUES ('292', 'lady gaga', null, null, null, '15079026985', 'efegrege', '2', null, null, '347756896@qq.com', null, null, '1', null, null, '1522849983', '32');
+INSERT INTO `hy_user` VALUES ('293', 'katy perry', null, null, null, '13611435193', 'paloma6', '2', null, null, '347756896@qq.com', null, null, '1', null, null, '1522850051', '35');
 
 -- ----------------------------
 -- Table structure for hy_work
