@@ -151,8 +151,6 @@ class Manager extends HyList
                     ]
                 ]
             ],
-
-
             [
                 'name'=>'gender',
                 'label' => '性别',
@@ -175,9 +173,7 @@ class Manager extends HyList
                     ['id'=>1,'name'=>'男'],
                     ['id'=>2,'name'=>'女'],
                 ]
-            ],
-
-            
+            ], 
             [
                 'name'=>'password',
                 'label'=>'密码',
@@ -239,7 +235,12 @@ class Manager extends HyList
                     'type'=>'daterange',
                   ]
               ], 
-            ]
+            ],
+            // [
+            //   'name'=>'avatar',
+            //   'label'=>'头像',
+            //   'type'=>'file',
+            // ]
         ];
            
     }
@@ -249,8 +250,8 @@ class Manager extends HyList
     public function detail($pk){
 
         return [
-            'username'=>[
-                'title'=>'用户名',
+            'name'=>[
+                'title'=>'姓名',
                 'icon'=>'fa-users',
                 'style'=>'green',
                 'render'=>true

@@ -317,7 +317,7 @@ class User extends HyList
     }
 
     public function detail($pk){
-
+   
         return [
             'username'=>[
                 'title'=>'用户名',
@@ -330,7 +330,39 @@ class User extends HyList
                 'icon'=>'fa-pencil',
                 'style'=>'purple-plum',
                 'render'=>true
-            ]
+            ],
+            'age'=>[
+                'title'=>'年龄',
+                'icon'=>'fa-pencil',
+                'style'=>'purple-plum',
+                // 'render'=>true
+            ],
+            'phone'=>[
+                'title'=>'电话',
+                'icon'=>'fa-pencil',
+                'style'=>'purple-plum',
+                // 'render'=>true
+            ],
+            'address'=>[
+                'title'=>'地址',
+                'icon'=>'fa-pencil',
+                'style'=>'purple-plum',
+                // 'render'=>true
+            ],
+            'email'=>[
+                'title'=>'电邮',
+                'icon'=>'fa-pencil',
+                'style'=>'purple-plum',
+                // 'render'=>true
+            ],
+            'create_time'=>[
+                'title'=>'创建时间',
+                'icon'=>'fa-pencil',
+                'style'=>'purple-plum',
+                // 'render'=>true
+            ],
+
+
         ];
     }
 
