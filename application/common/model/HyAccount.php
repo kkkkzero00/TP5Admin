@@ -159,12 +159,30 @@ class HyAccount extends Model
 
         // dump(config('common.LOGIN_SESSION_VALID'));
         // 返回信息
+        $ruleList = [];
+        // var_dump();
+
+        if($dataList['rulesList'] == 'all'){
+            $ruleList = 'all';
+        }else{
+            foreach ($dataList['rulesList'] as $k => $v) {
+
+                 if($cutPosition = strpos($k,'.')){
+                    $ruleList[strtolower(substr($k,$cutPosition+1))] = true;
+                 }else if($cutPosition = strpos($k,'/')){
+                    $ruleList[strtolower(substr($k,$cutPosition+1))] = true;
+                 }
+            }
+
+        }
         
+
+
         $data = [];
         $data['authKey']        = $authKey;
         $data['sessionId']      = $info['sessionId'];
         $data['userInfo']       = $userInfo;
-        $data['auth']       = $dataList['rulesList'];
+        $data['ruleList']       = $ruleList;
         $data['menus']      = $dataList['menusList'];
 
         Session::set('authKey',$authKey);
@@ -198,25 +216,84 @@ class HyAccount extends Model
             $rule_ids = array_unique($rule_ids);
 
 
+            $rule_group = [];
+
+            foreach ($rule_ids as $k => $v) {
+                $group = substr($v,0,2);
+                if(!isset($rule_group[$group."%"])) 
+                    $rule_group[$group."%"] = true;
+            }
+
+            $rule_group['20%'] = true;
+
+            $rule_group = array_keys($rule_group);
+            // var_dump($rule_group);
+
             $rules = Db::name('frame_rule')
                             ->where([
                                 'status'=>1,
-                                'id' => ['in',$rule_ids]
+                                'id' => ['like',$rule_group,'OR']
                             ])
-                            ->field('id,pid,name,type,icon,model,route,path,distance')
+                            // ->field()
                             ->order('id asc')
-                            ->select();
+                            ->column('id,pid,name,type,icon,model,route,path,distance','id');
+                            // ->select();
+
+            // var_dump($rules);
+
+            function findParent($item,$rules,$result){
+                $pid = $item['pid'];
+                // var_dump($pid);
+
+                if($pid != 0){
+                    unset($rules[$pid]['distance']);
+                    $result[$pid] = $rules[$pid];
+
+                    return findParent($rules[$pid],$rules,$result);
+                }else{
+                    $result[$item['id']] = $item;
+                    // var_dump($result);
+
+                    return $result;
+                }
+            }
+
+            $parentMenu = [];
+            $hasFoundTable = [];
 
             foreach ($rules as $k => $v) {
-                if($v['type'] == 'url'){
-                    $rulesList[$v['id']] = $v['distance'];
-                }
 
-                if(in_array($v['type'],['nav','menu'])){
-                    unset($v['distance']);
-                    array_push($menusList,$v);
-                }     
-            }  
+                if(in_array($k,$rule_ids)){
+                    if($v['type'] == 'url')
+                        $rulesList[$v['distance']] = $k;
+
+                    if(in_array($v['type'],['nav','menu','detail'])){
+                        unset($v['distance']);
+                        $menusList[$k] = $v;
+                    } 
+
+                    if($v['pid']!=0){
+                        $group = substr($k,0,3);
+
+                        if(!isset($hasFoundTable[$group])){
+                            $hasFoundTable[$group] = true;
+                            $parentMenu = $parentMenu+findParent($v,$rules,[]);
+                        }
+                    }
+                }else if(substr($k,0,1) == 2){
+                    $menusList[$k] = $v;
+                }
+            }
+
+            $menusList = $menusList + $parentMenu;
+
+            $lastMenu = [];
+
+            foreach ($menusList as $k => $v) {
+                array_push($lastMenu,$v);
+            }
+
+            $menusList = $lastMenu;
         }
 
         $ret = [

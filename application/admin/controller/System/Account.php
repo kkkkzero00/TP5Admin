@@ -144,17 +144,25 @@ class Account extends Base
             return json($json);
         }
 
+        // var_dump(preg_match('/\/(\d+)\//i',$path));
+
+        if(preg_match('/\/(\d+)\//i',$path)){
+          $path = preg_replace('/\/(\d+)\//i',"/:id/",$path);
+        }
+
         if(!in_array($path, $menuRoutes)){
+            // var_dump($path);
+            // var_dump($menuRoutes);
             $json['message'] = '地址非法！';
             $json['code'] = 500;
-            $json['status']  = false;
+            $json['status'] = $json['success'] = false;
 
             return json($json);
         }
 
         $json['message'] = '地址合法！';
         $json['code'] = 200;
-        $json['status']  = true;
+        $json['status'] = $json['success']  = true;
 
         return json($json);
     }

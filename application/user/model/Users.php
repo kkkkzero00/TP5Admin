@@ -2,7 +2,7 @@
 namespace app\user\model;
 use app\common\model\HyList;
 
-class User extends HyList
+class Users extends HyList
 {   
     public $table = DTP.'user';
     // protected $autoWriteTimestamp = true;

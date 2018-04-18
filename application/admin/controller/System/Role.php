@@ -12,7 +12,7 @@ class Role extends ListManage{
     public function getAccess(){
 
         $data = Db::table(DTP.'frame_rule')
-        ->where(['status'=>1,'type'=>['neq','admin']])
+        ->where(['status'=>1,'type'=>['neq','admin'],'id'=>['notlike','2%']])
         ->field('id,pid,name')
         ->select();
 
@@ -70,7 +70,7 @@ class Role extends ListManage{
         $role_id = is_null($id) ?$data['role_id'] : $id ;
 
         Db::startTrans();
-
+        // var_dump($data['access']);
         try{
             $table = DTP.'frame_access';
 
@@ -79,13 +79,15 @@ class Role extends ListManage{
                 ->delete();
 
             $res = null;
-            
+            // var_dump($data);
             if(isset($data['access']) && (count($data['access']) != 0)){
                 foreach ($data['access'] as $k => $v) {
                     array_push($insert,['role_id'=>$role_id,'rule_id'=>$v]);
                 }
+                // var_dump($rule_id);
 
                 $res = Db::table($table)->insertAll($insert);
+                // var_dump($res);
             }else{
                 $res = true;
             }
